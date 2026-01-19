@@ -114,15 +114,15 @@ uvicorn main:app --reload
 | **refresh_token 발행**   | POST        | `/api/v1/accounts/token/refresh/`             | refresh_token을 통해 access_token 재발급                                    |
 | **AUTH 여부 확인**      | GET         | `/api/v1/accounts/check_token/`                | 유저의 AUTH를 체크                                                          |
 | **부모 프로필**          | GET         | `/api/v1/accounts/`                           | 부모 프로필 및 부모의 자녀들 조회                                            |
-| **자녀 정보 조회**       | GET         | `/api/v1/accounts/children/<int:pk>/`           | 자녀의 생일, 이름, 아이디 프로필이미지 조회                                |
-| **자녀 정보 수정**       | PUT         | `/api/v1/accounts/children/<int:pk>/`         | 자녀의 생일, 이름, 아이디, 비밀번호, 프로필 수정                             |
-| **자녀 정보 삭제**       | DELETE      | `/api/v1/accounts/children/<int:pk>/`         | 자녀의 정보 및 데이터를 삭제                                                |
-| **자녀 월말 결산 작성**  | POST        | `/api/v1/diary/monthly/<int:child_id>/`     | 자녀의 월간 용돈기입장 데이터를 토대로 AI가 결산 작성                        |
+| **자녀 정보 조회**       | GET         | `/api/v1/accounts/children/{pk}/`           | 자녀의 생일, 이름, 아이디 프로필이미지 조회                                |
+| **자녀 정보 수정**       | PUT         | `/api/v1/accounts/children/{pk}/`         | 자녀의 생일, 이름, 아이디, 비밀번호, 프로필 수정                             |
+| **자녀 정보 삭제**       | DELETE      | `/api/v1/accounts/children/{pk}/`         | 자녀의 정보 및 데이터를 삭제                                                |
+| **자녀 월말 결산 작성**  | POST        | `/api/v1/diary/monthly/{child_id}/`     | 자녀의 월간 용돈기입장 데이터를 토대로 AI가 결산 작성                        |
 | **용돈기입장 작성**      | POST        | `/api/v1/diary/chat/`                       | AI와의 대화를 통해 수집한 json데이터를 저장                                 |
-| **AI챗봇 채팅 기록**     | GET         | `/api/v1/diary/chat/messages/<int:child_pk>/`  | AI와 자녀가 대화한 내용을 전달                                             |
-| **기입장 특정 삭제**     | DELETE      | `/api/v1/diary/chat/<int:diary_pk>/delete/`  | 자녀의 특정 용돈기입장 내용 삭제                                           |
-| **월별 용돈 기입장 조회**| GET         | `/api/v1/diary/<int:child_pk>/<int:year>/<int:month>/`| 년월을 기준으로 작성한 용돈기입장 조회                            |
-| **용돈기입장 데이터가있는 월 조회**| GET | `/api/v1/diary/<int:child_pk>/available-months/`| 용돈 기입장 데이터가 있는 월 조회                                    |
+| **AI챗봇 채팅 기록**     | GET         | `/api/v1/diary/chat/messages/{child_pk}/`  | AI와 자녀가 대화한 내용을 전달                                             |
+| **기입장 특정 삭제**     | DELETE      | `/api/v1/diary/chat/{diary_pk}/delete/`  | 자녀의 특정 용돈기입장 내용 삭제                                           |
+| **월별 용돈 기입장 조회**| GET         | `/api/v1/diary/{child_pk}/{year}/{month}/`| 년월을 기준으로 작성한 용돈기입장 조회                            |
+| **용돈기입장 데이터가있는 월 조회**| GET | `/api/v1/diary/{child_pk}/available-months/`| 용돈 기입장 데이터가 있는 월 조회                                    |
 
 
 
