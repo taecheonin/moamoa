@@ -1,0 +1,258 @@
+/* 전체 글꼴 */
+body {
+    font-family: 'Arial', sans-serif;
+}
+
+/* 배너 */
+.navbar {
+    position: relative;
+    width: 100%;
+    background-color: #FFF3D6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px;
+    height: 60px; /* 높이를 명시적으로 지정 */
+}
+
+#logoutBtn {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-left: auto; /* 로그아웃 버튼을 오른쪽으로 밀기 */
+}
+
+#logoutBtn img {
+    width: 30px;
+    height: 30px;
+    transition: transform 0.3s ease;
+}
+
+#logoutBtn:hover img {
+    transform: scale(1.1);
+}
+
+/* 로그아웃 버튼 기본적으로 숨기기 */
+#logoutBtn {
+    display: none;
+}
+
+#backBtn {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-right: auto; /* 뒤로가기 버튼을 왼쪽으로 밀기 */
+}
+
+#backBtn img {
+    width: 30px;
+    height: 30px;
+    transition: transform 0.3s ease;
+}
+
+#backBtn:hover img {
+    transform: scale(1.1);
+}
+
+.navbar-brand {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.navbar-brand img {
+    display: block;
+    margin: 0 auto;
+}
+
+/* 헤더 */
+header {
+    background-color: #FFFFFE;
+    text-align: center;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+/* 왼쪽 영역 */
+
+.mt-3 {
+    height: 85vh;
+    width: 480px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.mt-5 {
+    margin-top: 10px !important;
+}
+
+/* 타이틀 스타일 */
+.main-title {
+    color: #333;
+    margin-top: 50px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.moamoa-title {
+    font-family: 'Jua', sans-serif;
+    color: #ffbd41;
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* 강조점을 추가하는 스타일 */
+.strong-text {
+    position: relative;
+    display: inline-block;
+    font-size: 2.2rem;
+    font-weight: bold;
+}
+
+.strong-text::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    background-color: #ffbd41;
+    border-radius: 50%;
+}
+
+/* 해시태그 스타일 */
+.tag-section {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.tag {
+    background-color: #ffecb3;
+    padding: 5px 10px;
+    border-radius: 15px;
+    color: #333;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+/* 설명 스타일 */
+.description p {
+    font-size: 1.2rem;
+    color: #666;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.leftdesc {
+    font-size: xx-large;
+    font-weight: 900;
+}
+
+.lefticon {
+    width: 60px;
+    height: 60px;
+}
+
+.leftlist h5 {
+    font-weight: bold;
+}
+
+.leftlist span {
+    font-size: 14px;
+}
+
+.leftcopy {
+    font-size: 12px;
+}
+
+.leftcopy span {
+    font-weight: bold;
+}
+
+/* 메인 컨테이너 */
+#app {
+    margin: 0 auto;
+    background-color: #F9F4E2;
+    padding: 0;
+    height: 100vh; /* 1011 */
+    display: flex;
+    flex-direction: column;
+}
+
+#app .content {
+    flex: 1;
+}
+
+/* 미디어 쿼리 */
+@media (max-width: 768px) {
+    #app {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: -1;
+    }
+
+    footer img {
+        width: 24px;
+        height: 24px;
+    }
+
+    footer .plus-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+        bottom: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    footer img {
+        width: 20px;
+        height: 20px;
+    }
+
+    footer .plus-btn {
+        width: 45px;
+        height: 45px;
+        font-size: 22px;
+        bottom: 10px;
+    }
+}
+
+/* 로그인 버튼 */
+.login-buttons {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.login-buttons button {
+    width: 70%;
+    height: 50px;
+    font-size: 18px;
+    margin-bottom: 15px;
+    border-radius: 25px;
+}
+
+.kakao-login {
+    background-color: #FFCD00;
+    color: #000;
+}
+
+.kids-login {
+    background-color: #EDEDED;
+    color: #000;
+}
+
+.footer-text {
+    font-size: 14px;
+    text-align: center;
+    margin-top: 10px;
+    color: #7F7F7F;
+}
+

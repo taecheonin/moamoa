@@ -1,0 +1,78 @@
+
+#child-greeting {
+    margin: 10px;
+    font-family: 'EliceDigitalBaeum-Bd', sans-serif;
+    font-size: 18px;
+}
+.encouragement, .spending-log {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.encouragement p {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.profile-image {
+    margin-top: 30px;
+    border-radius: 15px; 
+    width: 150px; 
+    height: 150px; 
+    object-fit: cover;
+}
+
+.mb-0 {
+    color: #527835;
+    font-family: 'EliceDigitalBaeum-Bd', sans-serif;
+}
+
+/* 하단 내비게이션 */
+.bottom-nav {
+    position: absolute;
+    bottom: 0px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    background-color: #FFF4DB;
+    height: 50px;
+    border-top: 5px solid #FFCD00;
+}
+
+.nav-btn {
+    background-color: #FFCD00;
+    border-radius: 50%;
+    padding: 10px;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: -40px; /* 버튼이 살짝 떠 있도록 설정 */
+}
+
+
+/* 테이블 배경색 설정 */
+table {
+    background-color: #fcf5e7 !important; 
+    border-radius: 10px; 
+}
+
+th, td {
+    background-color: #fdf7e8 !important;
+    padding: 10px;
+    border: 1px solid #fdf7e8;
+}
+
+/* #app 높이 설정 */
+#app {
+    position: relative;
+    min-height: 100vh;
+    padding-bottom: 60px; /* 내비게이션 공간 확보 */
+}
+.expense {
+    color: rgb(255, 124, 124) !important;  /* 지출일 경우 빨간색 */
+}
+.income {
+    color: rgb(48, 152, 255) !important; /* 수입일 경우 파란색 */
+}

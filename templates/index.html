@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>모아모아 :: 똑똑한 용돈 관리 습관</title>
+
+    <!-- Tailwind CSS Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'blob': 'blob 7s infinite',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="{{ static('css/tci_landing.css') }}">
+    <link rel="shortcut icon" href="{{ static('images/favicon.ico') }}">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap"
+        rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased text-gray-800">
+
+    <!-- 네비게이션 바 -->
+    <nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md shadow-sm border-b border-yellow-100">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <!-- 로고 (홈 링크) -->
+                <a href="/" class="flex items-center hover:opacity-80 transition">
+                    <img src="{{ static('images/banner_logo.png') }}" alt="모아모아 로고" class="h-10 w-auto" />
+                </a>
+
+                <!-- 데스크톱 메뉴 -->
+                <div class="hidden md:flex space-x-6 items-center">
+                    <!-- 기능 드롭다운 -->
+                    <div class="relative group" id="tci-features-dropdown">
+                        <button
+                            class="text-gray-600 hover:text-yellow-500 font-medium transition flex items-center py-2">
+                            기능
+                            <i data-lucide="chevron-down"
+                                class="w-4 h-4 ml-1 group-hover:rotate-180 transition-transform"></i>
+                        </button>
+                        <div
+                            class="absolute top-full left-0 pt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                            <div class="bg-white rounded-xl shadow-xl border border-gray-100">
+                                <div class="py-2">
+                                    <a href="#ai-ledger"
+                                        class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition">
+                                        <div class="font-medium">AI 가계부</div>
+                                        <div class="text-xs text-gray-500 mt-0.5">말하면 자동 입력</div>
+                                    </a>
+                                    <a href="#habits"
+                                        class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition">
+                                        <div class="font-medium">소비 분석</div>
+                                        <div class="text-xs text-gray-500 mt-0.5">눈높이 리포트</div>
+                                    </a>
+                                    <a href="#missions"
+                                        class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition">
+                                        <div class="font-medium">미션 & 챌린지</div>
+                                        <div class="text-xs text-gray-500 mt-0.5">배지 획득하기</div>
+                                    </a>
+                                    <a href="#video-class"
+                                        class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition">
+                                        <div class="font-medium">금융 교실</div>
+                                        <div class="text-xs text-gray-500 mt-0.5">영상으로 배우기</div>
+                                    </a>
+                                    <div class="border-t border-gray-100 my-1"></div>
+                                    <a href="#parents"
+                                        class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition">
+                                        <div class="font-medium">부모님 전용</div>
+                                        <div class="text-xs text-gray-500 mt-0.5">자녀 관리 & 리포트</div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <a href="/profile/" class="text-gray-600 hover:text-yellow-500 font-medium transition">
+                        내 프로필
+                    </a>
+
+                    <!-- CTA 버튼 -->
+                    <button
+                        class="bg-yellow-400 hover:bg-yellow-500 text-white px-5 py-2 rounded-full font-bold shadow-md transition transform hover:scale-105 kakao-login">
+                        부모님 로그인
+                    </button>
+                </div>
+
+                <!-- 모바일 메뉴 토글 버튼 -->
+                <div class="md:hidden">
+                    <button id="tci-mobile-menu-toggle" class="text-gray-600">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 모바일 메뉴 -->
+        <div id="tci-mobile-menu" class="hidden md:hidden bg-white border-b border-gray-100 shadow-lg">
+            <div class="px-4 pt-2 pb-4 space-y-1">
+                <div class="mb-2">
+                    <div class="px-2 py-2 text-xs font-bold text-gray-400 uppercase">기능</div>
+                    <a href="#ai-ledger"
+                        class="block px-2 py-2 text-gray-600 font-medium tci-mobile-menu-link rounded-lg hover:bg-yellow-50">AI
+                        가계부</a>
+                    <a href="#habits"
+                        class="block px-2 py-2 text-gray-600 font-medium tci-mobile-menu-link rounded-lg hover:bg-yellow-50">소비
+                        분석</a>
+                    <a href="#missions"
+                        class="block px-2 py-2 text-gray-600 font-medium tci-mobile-menu-link rounded-lg hover:bg-yellow-50">미션
+                        & 챌린지</a>
+                    <a href="#video-class"
+                        class="block px-2 py-2 text-gray-600 font-medium tci-mobile-menu-link rounded-lg hover:bg-yellow-50">금융
+                        교실</a>
+                </div>
+                <div class="border-t border-gray-100 my-2"></div>
+                <a href="#parents"
+                    class="block px-2 py-2 text-gray-600 font-medium tci-mobile-menu-link rounded-lg hover:bg-yellow-50">부모님
+                    전용</a>
+                <div class="border-t border-gray-100 my-2"></div>
+                <button class="w-full mt-4 bg-yellow-400 text-white py-3 rounded-xl font-bold shadow-md kakao-login">
+                    부모님 로그인
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 히어로 섹션 -->
+    <section class="pt-32 pb-20 bg-gradient-to-b from-yellow-50 to-white overflow-hidden relative">
+        <div
+            class="absolute top-20 right-0 -mr-20 w-96 h-96 bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob">
+        </div>
+        <div
+            class="absolute top-40 left-0 -ml-20 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000">
+        </div>
+
+        <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center relative z-10">
+            <div class="md:w-1/2 text-center md:text-left mb-12 md:mb-0">
+                <span class="inline-block py-1 px-3 rounded-full bg-blue-100 text-blue-600 text-sm font-bold mb-4">
+                    💸 우리 아이 첫 금융 친구
+                </span>
+                <h1 class="text-4xl md:text-6xl font-black text-gray-900 leading-tight mb-6">
+                    똑똑한 소비 습관, <br />
+                    <span class="text-yellow-500 relative">
+                        모아모아AI
+                        <svg class="absolute w-full h-3 -bottom-1 left-0 text-yellow-200 -z-10" viewBox="0 0 100 10"
+                            preserveAspectRatio="none">
+                            <path d="M0 5 Q 50 10 100 5" stroke="currentColor" stroke-width="8" fill="none" />
+                        </svg>
+                    </span>와 함께 시작해요!
+                </h1>
+                <p class="text-lg text-gray-600 mb-8 leading-relaxed">
+                    어려운 용돈 기입장은 그만! <br />
+                    말하면 알아서 정리해주는 AI 비서 '모아모아'와 함께 <br class="hidden md:inline" />
+                    즐겁게 돈 관리하는 습관을 길러보세요.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
+                    <button
+                        class="px-8 py-4 bg-yellow-400 hover:bg-yellow-500 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 flex items-center justify-center kids-login">
+                        키즈 로그인 <i data-lucide="chevron-right" class="ml-2 w-5 h-5"></i>
+                    </button>
+                    <button
+                        class="px-8 py-4 bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-100 rounded-2xl font-bold text-lg shadow-sm hover:shadow-md transition flex items-center justify-center kakao-login">
+                        부모님 로그인
+                    </button>
+                </div>
+            </div>
+
+            <div class="md:w-1/2 flex justify-center relative">
+                <div
+                    class="relative w-72 h-[500px] bg-gray-900 rounded-[3rem] border-8 border-gray-900 shadow-2xl overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-6 bg-gray-900 z-20 flex justify-center">
+                        <div class="w-24 h-4 bg-black rounded-b-xl"></div>
+                    </div>
+                    <div class="w-full h-full bg-blue-50 pt-10 px-4 flex flex-col">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <div class="text-xs text-gray-500">나의 용돈</div>
+                                <div class="font-bold text-2xl text-gray-800">12,500원</div>
+                            </div>
+                            <div
+                                class="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center shadow-sm">
+                                <i data-lucide="smile" class="text-white w-6 h-6"></i>
+                            </div>
+                        </div>
+
+                        <div id="tci-chat-messages" class="space-y-3 flex-1 overflow-y-auto no-scrollbar">
+                            <!-- 채팅 메시지가 여기에 렌더링됩니다 -->
+                        </div>
+
+                        <div class="mb-4 mt-4 bg-white p-2 rounded-full flex items-center shadow-md">
+                            <div id="tci-quick-input" class="flex-1 text-gray-400 text-xs px-2 cursor-pointer">"문구점에서 연필
+                                3,000원 샀어"</div>
+                            <div id="tci-chat-send"
+                                class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white cursor-pointer">
+                                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="absolute top-20 -right-4 bg-white p-3 rounded-2xl shadow-xl animate-bounce">
+                    <i data-lucide="pie-chart" class="text-green-500 w-8 h-8"></i>
+                </div>
+                <div class="absolute bottom-32 -left-8 bg-white p-3 rounded-2xl shadow-xl animate-pulse">
+                    <i data-lucide="coins" class="text-yellow-500 w-8 h-8"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI 기능 섹션 -->
+    <section id="ai-ledger" class="py-20 bg-white">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-10 md:mb-0">
+                    <div class="relative inline-block">
+                        <div
+                            class="absolute -inset-1 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full blur opacity-25">
+                        </div>
+                        <img src="{{ static('images/ai.png') }}" class="relative w-20 h-20 mb-6" alt="AI Icon">
+                    </div>
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
+                        키보드 대신 목소리로, <br />
+                        <span class="text-yellow-500">대화형 AI 가계부</span>
+                    </h2>
+                    <ul class="space-y-8">
+                        <li class="flex items-start">
+                            <div
+                                class="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 mr-4">
+                                <i data-lucide="mic" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-xl text-gray-800 mb-1">말하면 자동 입력</h3>
+                                <p class="text-gray-500">"오늘 간식비 2천원 썼어"라고 말만 하세요. AI가 찰떡같이 알아듣고 정리해요.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <div
+                                class="flex-shrink-0 w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-600 mr-4">
+                                <i data-lucide="pie-chart" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-xl text-gray-800 mb-1">똑똑한 자동 분류</h3>
+                                <p class="text-gray-500">간식, 장난감, 학용품... 카테고리 분류도 모아모아AI가 알아서 척척!</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="md:w-1/2 md:pl-16">
+                    <!-- AI 채팅 강조 영역 -->
+                    <div class="bg-gray-50 rounded-3xl p-8 border border-gray-100 shadow-inner">
+                        <div class="flex gap-3 mb-4">
+                            <div
+                                class="w-10 h-10 bg-yellow-400 rounded-full flex-shrink-0 flex items-center justify-center text-white">
+                                M</div>
+                            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-gray-700">
+                                안녕! 오늘 용돈 어디에 썼어? 💸
+                            </div>
+                        </div>
+                        <div class="flex gap-3 justify-end mb-4">
+                            <div class="bg-blue-500 p-4 rounded-2xl shadow-sm text-white">
+                                편의점에서 젤리 샀어!
+                            </div>
+                        </div>
+                        <div class="flex gap-3 text-sm italic text-gray-400 justify-center py-4">
+                            진행 중... 모아모아가 기록을 분석하고 있어요 ✨
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 소비 분석 섹션 -->
+    <section id="habits" class="py-20 bg-gray-50">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                    놀이처럼 즐거운 <span class="text-yellow-500">금융 습관</span> 만들기
+                </h2>
+                <p class="text-gray-600 text-lg">
+                    분석은 AI가 하고, 아이는 게임하듯 즐겁게 배울 수 있어요.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <div
+                    class="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300">
+                    <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center text-red-500 mb-6">
+                        <i data-lucide="trending-up" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-3">눈높이 소비 리포트</h3>
+                    <p class="text-gray-500 mb-6">"이번 주는 군것질을 많이 했네?" 아이가 이해하기 쉬운 문장으로 소비 패턴을 알려줘요.</p>
+                    <div class="bg-gray-50 p-4 rounded-xl">
+                        <div class="flex justify-between text-xs text-gray-500 mb-2"><span>간식</span><span
+                                class="font-bold text-red-500">50%</span></div>
+                        <div class="w-full bg-gray-200 h-2 rounded-full mb-4">
+                            <div class="bg-red-400 h-2 rounded-full" style="width: 50%;"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500 mb-2"><span>학용품</span><span
+                                class="font-bold text-blue-500">30%</span></div>
+                        <div class="w-full bg-gray-200 h-2 rounded-full">
+                            <div class="bg-blue-400 h-2 rounded-full" style="width: 30%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform md:-translate-y-4 border-t-4 border-yellow-400">
+                    <div
+                        class="w-14 h-14 bg-yellow-100 rounded-2xl flex items-center justify-center text-yellow-600 mb-6">
+                        <i data-lucide="star" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-3">저축 목표 달성</h3>
+                    <p class="text-gray-500 mb-6">목표를 세우고 달성률을 시각적으로 확인하며 저축의 기쁨을 느껴요.</p>
+                    <div class="bg-yellow-50 p-4 rounded-xl text-center">
+                        <div class="text-sm font-bold text-yellow-700 mb-2">🚲 자전거 사기 프로젝트</div>
+                        <div class="relative w-32 h-32 mx-auto flex items-center justify-center">
+                            <svg class="transform -rotate-90 w-32 h-32">
+                                <circle cx="64" cy="64" r="56" stroke="#fef08a" stroke-width="8" fill="transparent" />
+                                <circle cx="64" cy="64" r="56" stroke="#fbbf24" stroke-width="8" fill="transparent"
+                                    stroke-dasharray="351" stroke-dashoffset="70" stroke-linecap="round" />
+                            </svg>
+                            <div class="absolute text-2xl font-bold text-gray-800">80%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="missions"
+                    class="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300">
+                    <div class="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-500 mb-6">
+                        <i data-lucide="award" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-3">미션과 배지</h3>
+                    <p class="text-gray-500 mb-6">미션을 완료하면 멋진 배지를 받고 레벨업 할 수 있어요.</p>
+                    <div class="flex gap-2 justify-center">
+                        <div class="flex flex-col items-center">
+                            <div
+                                class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center border-2 border-yellow-300 shadow-sm">
+                                🏆</div>
+                            <span class="text-xs mt-1 text-gray-500">절약왕</span>
+                        </div>
+                        <div class="flex flex-col items-center opacity-50">
+                            <div
+                                class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center border-2 border-gray-200">
+                                🌱</div>
+                            <span class="text-xs mt-1 text-gray-400">저축새싹</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 비디오 교육 섹션 -->
+    <section id="video-class" class="py-20 bg-white">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center gap-12">
+                <div class="md:w-1/2">
+                    <div class="inline-block p-2 px-4 rounded-full bg-red-100 text-red-600 font-bold mb-4 text-sm">📺
+                        모아모아 금융 교실</div>
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-6">영상으로 쉽고 재미있게<br /><span
+                            class="text-red-500">우리 아이 경제 공부</span></h2>
+                    <p class="text-lg text-gray-600 mb-8">딱딱한 글자 대신 재미있는 영상으로 경제 개념을 익혀보세요.</p>
+                    <a href="https://www.youtube.com/@yuly9424" target="_blank"
+                        class="inline-flex items-center px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-md transition">
+                        영상 더 보러가기 <i data-lucide="chevron-right" class="ml-2 w-4 h-4"></i>
+                    </a>
+                </div>
+                <div class="md:w-1/2 w-full">
+                    <div
+                        class="bg-gray-900 p-2 rounded-3xl shadow-2xl transform rotate-1 hover:rotate-0 transition duration-500">
+                        <div class="relative w-full pb-[56.25%] rounded-2xl overflow-hidden bg-black">
+                            <iframe class="absolute top-0 left-0 w-full h-full border-0"
+                                src="https://www.youtube.com/embed/P7OqX4Nd_LA" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 부모님 섹션 -->
+    <section id="parents" class="py-20 bg-blue-600 text-white overflow-hidden relative">
+        <div
+            class="absolute top-0 right-0 w-64 h-64 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-50 -mr-32 -mt-32">
+        </div>
+        <div
+            class="absolute bottom-0 left-0 w-80 h-80 bg-blue-700 rounded-full mix-blend-multiply filter blur-3xl opacity-50 -ml-16 -mb-16">
+        </div>
+
+        <div class="max-w-6xl mx-auto px-4 relative z-10 flex flex-col md:flex-row items-center">
+            <div class="md:w-1/2 mb-10 md:mb-0 pr-0 md:pr-12">
+                <div
+                    class="inline-block py-1 px-3 rounded-full bg-blue-500 text-blue-100 text-sm font-bold mb-4 border border-blue-400">
+                    👨‍👩‍👧‍👦 부모님 전용 기능</div>
+                <h2 class="text-3xl md:text-5xl font-bold leading-tight mb-6">안심하고 맡기세요, <br /><span
+                        class="text-yellow-300">함께하는 금융 교육</span></h2>
+                <p class="text-blue-100 text-lg mb-8">아이의 소비 내역을 실시간으로 확인하고, 미션 성공 시 용돈을 지급하며 경제 관념을 심어주세요.</p>
+            </div>
+            <div class="md:w-1/2">
+                <div
+                    class="bg-white text-gray-800 rounded-3xl p-8 shadow-2xl transform rotate-2 hover:rotate-0 transition duration-500">
+                    <h3 class="text-xl font-bold mb-6 text-center border-b pb-4">모아모아 학부모 리포트</h3>
+                    <div class="space-y-6">
+                        <div>
+                            <div class="flex justify-between items-center mb-2"><span class="text-sm text-gray-500">이번 달
+                                    용돈 지급</span><span class="font-bold text-gray-900">30,000원</span></div>
+                            <div class="w-full bg-gray-100 h-2 rounded-full">
+                                <div class="bg-blue-500 h-2 rounded-full w-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 푸터 -->
+    <footer class="bg-gray-900 text-gray-300 py-16">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="grid md:grid-cols-2 gap-12 items-center mb-12 border-b border-gray-800 pb-12">
+                <div>
+                    <h2 class="text-3xl font-bold text-white mb-4">지금 바로 <span class="text-yellow-400">모아모아</span>를
+                        만나보세요!</h2>
+                </div>
+            </div>
+            <div class="mb-8 pb-8 border-b border-gray-800">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-400">
+                    <div>
+                        <h3 class="text-white font-semibold mb-3">엄카회수TF</h3>
+                        <p class="mb-2">이영훈, 김기홍, 김경민, 윤율</p>
+                    </div>
+                    <div>
+                        <h3 class="text-white font-semibold mb-3">태천인</h3>
+                        <p class="mb-1">대표&개인정보책임자: 이영훈 | 사업자등록번호: 113-24-13786</p>
+                        <p>경기도 광주시 중앙로 78, 337호(역동)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row justify-between items-center text-sm">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <img src="{{ static('images/banner_logo.png') }}" alt="모아모아 로고" class="h-8 w-auto">
+                </div>
+                <div class="flex flex-wrap gap-4 justify-center md:justify-end mb-4 md:mb-0">
+                    <button id="tci-open-terms" class="hover:text-white transition cursor-pointer">이용약관</button>
+                    <button id="tci-open-privacy" class="hover:text-white transition cursor-pointer">개인정보처리방침</button>
+                    <a href="https://github.com/taecheonin/moamoa" target="_blank"
+                        class="hover:text-white transition">모아모아 GitHub
+                        V1</a>
+                    <a href="https://github.com/strongdambi/moamoa" target="_blank" rel="noopener noreferrer"
+                        class="hover:text-white transition">모아모아 GitHub</a>
+                </div>
+                <div class="mt-4 md:mt-0 text-gray-500">© 2024 엄카회수 TF. All rights reserved.</div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 정책 모달 -->
+    <div id="tci-policy-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" id="tci-modal-backdrop"></div>
+        <div
+            class="bg-white rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl relative z-10 animate-in">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center shrink-0">
+                <h3 class="text-xl font-bold text-gray-900" id="tci-modal-title"></h3>
+                <button id="tci-modal-close" class="p-2 hover:bg-gray-100 rounded-full transition text-gray-500">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto text-gray-600 text-sm leading-relaxed whitespace-pre-wrap font-medium"
+                id="tci-modal-content"></div>
+            <div class="p-6 border-t border-gray-100 bg-gray-50 rounded-b-3xl flex justify-end shrink-0">
+                <button id="tci-modal-confirm"
+                    class="bg-gray-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="{{ static('js/script.js') }}"></script>
+    <script src="{{ static('js/tci_landing.js') }}"></script>
+    <script>
+        window.tciMoamoaPolicyData = {
+            terms: `제1조 (목적)
+본 약관은 AI 기반 파이썬 교육 과정에서 구성된 팀 프로젝트 “엄카회수 TF”(이하 “프로젝트”) 가 제공하는 어린이 금융 교육 및 자산 관리 서비스(이하 “서비스”)의 이용 조건과 절차, 프로젝트 팀과 사용자 간의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.
+본 서비스는 학습 및 취업 포트폴리오 제작을 위한 비영리 목적의 프로젝트이며, 실제 기업이 운영하는 상업적 서비스가 아닙니다. 다만, 서비스 유지·운영에 필요한 최소 비용을 충당하기 위해 일부 선택적 유료 기능 또는 후원 시스템을 제공할 수 있습니다.
+
+제2조 (용어의 정의)
+1. "회원"이란 서비스에 접속하여 이 약관에 따라 회사와 이용계약을 체결하고 회사가 제공하는 서비스를 이용하는 고객을 말합니다.
+2. "자녀 회원"이란 만 14세 미만의 아동으로, 법정대리인의 동의를 얻어 서비스를 이용하는 회원을 의미합니다.
+3. "보호자 회원"이란 자녀 회원의 법정대리인으로서 자녀의 금융 활동을 지도하고 관리하는 회원을 의미합니다.
+4. 본 서비스는 실제 금융 거래 기능이 아닌, 교육·시뮬레이션 목적의 기능을 제공합니다.
+
+제3조 (서비스의 내용)
+회사는 다음과 같은 서비스를 제공합니다.
+1. AI 기반 용돈 기입장 및 소비 분석 서비스
+2. 금융 교육 콘텐츠 (영상, 퀴즈 등)
+3. 부모-자녀 연동 용돈 관리 및 미션 보상 시스템
+4. 프로젝트의 특성상 기능은 계속 수정·추가·삭제될 수 있으며, 실제 금융 서비스 또는 상업적 서비스와 동일한 기능을 보장하지 않습니다.
+
+제4조 (서비스의 비영리적 성격 및 소액 수익)
+1. 본 서비스는 교육 목적의 비영리 팀 프로젝트입니다.
+2. 프로젝트 운영을 위해 다음과 같은 수익 요소를 제한적으로 포함할 수 있습니다.
+- 선택적 후원(기부)
+- 서버비 등 운영 비용 충당을 위한 소액 유료 기능 제공
+- 광고 게재 등 비침해적 방식의 수익 창출
+3. 위 수익은 영리 목적이 아닌 서비스 유지·개발을 위한 제한적 수익임을 명시합니다.
+
+제5조 (개인정보보호 및 데이터 처리)
+1. 프로젝트 특성상 서비스 이용 시 최소한의 정보 또는 익명 데이터만 사용될 수 있습니다.
+2. 팀은 “개인정보보호법”의 취지를 존중하며, 수집한 정보는 외부 전송·판매·상업적 이용을 하지 않습니다.
+3. 테스트용 데이터 또는 자동 생성 데이터가 활용될 수 있으며, 이는 실제 사용자 정보와 무관할 수 있습니다.
+4. 본 서비스는 실제 기업 수준의 개인정보보호 시스템을 보장하지 못할 수 있으므로, 사용자는 이 점을 이해하고 동의해야 합니다.
+
+제6조 (책임의 제한)
+1. 본 서비스는 프로젝트 교육 목적의 샘플 서비스로 제공되며, 정확성·안정성·연속성을 보장하지 않습니다.
+2. 서비스 장애, 데이터 오류, 프로젝트 종료 등으로 인해 발생하는 문제에 대해 팀은 법적 책임을 지지 않습니다.
+3. 서비스의 분석 결과 또는 콘텐츠를 기반으로 사용자가 내린 금융적·생활적 결정에 대해 팀은 어떠한 책임도 부담하지 않습니다.
+
+제7조 (약관의 효력 및 변경)
+1. 본 약관은 서비스 화면 또는 안내 페이지에 게시된 시점부터 효력이 발생합니다.
+2. 프로젝트 진행 상황에 따라 약관 내용은 자유롭게 변경될 수 있으며, 변경된 약관은 서비스 내 공지사항을 통해 고지합니다.
+
+제8조 (기타)
+1. 본 서비스는 학습·실습·포트폴리오 목적의 작품으로, 실제 상업 서비스와 구분됩니다.
+2. 본 약관에 명시되지 않은 사항은 일반적인 이용약관의 취지에 따라 해석됩니다.
+3. 실제 상용 서비스 출시를 위해서는 전문가의 법률 검토가 필요할 수 있습니다.`,
+            privacy: `1. 개인정보의 처리 목적
+'엄카회수 TF'는(은) 다음의 목적을 위하여 개인정보를 처리합니다. 처리하고 있는 개인정보는 다음의 목적 이외의 용도로는 이용되지 않으며 이용 목적이 변경되는 경우에는 「개인정보 보호법」 제18조에 따라 별도의 동의를 받는 등 필요한 조치를 이행할 예정입니다.
+- 회원 가입 및 관리 (어린이 회원 및 보호자 확인)
+- AI 소비 분석 서비스 제공
+- 금융 교육 콘텐츠 추천
+
+2. 수집하는 개인정보 항목
+- 필수항목: 닉네임, 생년월일, 아이디, 비밀번호, 보호자 연락처
+- 선택항목: 용돈 내역, 소비 습관 데이터, 음성 및 영상 명령 데이터(AI 학습용, 익명화 처리)
+
+3. 만 14세 미만 아동의 개인정보 처리에 관한 사항
+회사는 만 14세 미만 아동의 개인정보를 수집할 때 법정대리인의 동의를 얻어 수집하며, 법정대리인은 언제든지 아동의 개인정보 수집 이용 동의를 철회하거나 정정을 요청할 수 있습니다.
+
+4. 개인정보의 파기
+회사는 개인정보 보유기간의 경과, 처리목적 달성 등 개인정보가 불필요하게 되었을 때에는 지체없이 해당 개인정보를 파기합니다.
+
+5. 개인정보 보호책임자
+- 성명: 이영훈
+- 직책: 개인정보 보호팀장
+- 연락처: privacy@moamoa.com
+
+(본 방침은 예시이며, 실제 운영 시에는 관련 법령에 따른 구체적인 내용 작성이 필요합니다.)`
+        };
+
+        // Lucide 아이콘 초기화
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
+</body>
+
+</html>

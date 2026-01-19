@@ -1,0 +1,248 @@
+body {
+    background-color: #F9F4E2;
+    font-family: 'Arial', sans-serif;
+}
+
+svg {
+    width: 100%;
+    height: auto;
+}
+
+.greeting h4 {
+    margin: 20px auto;
+    text-align: center;
+    font-size: 18px;
+    font-family: 'EliceDigitalBaeum-Bd', sans-serif;
+}
+
+.loading-container{
+    margin: 20px auto;
+    width: 80%;
+    text-align: center;
+}
+
+.progress {
+    margin-top: 10px;
+}
+
+.profile-card {
+    background-color: #F9F4E2;
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-card img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 10px;
+}
+
+.profile-info {
+    margin-left: 15px;
+}
+
+.profile-info h5 {
+    margin: 0;
+    font-family: 'EliceDigitalBaeum-Bd', sans-serif;
+}   
+
+.profile-info p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+/* 내용 부분 */
+.summaryview {
+    text-align: center;
+    font-family: 'EliceDigitalBaeum-Bd', sans-serif;
+}
+/* 차트와 최대 소비 카테고리를 한 줄에 배치 */
+.spending-summary-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.spending-summary-red {
+    margin-bottom: 30px;
+}
+
+.spending-chart {
+    flex: 1;
+    text-align: center;
+    margin-right: 20px;
+}
+
+/* 이번달 최대 소비 */
+.max-expenditure-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.max-expenditure-box {
+    background-color: #FFECB3;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    margin: 10px; 
+    width: 180px; 
+    height: 90px; 
+    overflow: hidden;
+}
+
+.max-expenditure-box p, .max-expenditure-box .category-box {
+    white-space: nowrap;
+    overflow: hidden; /* 넘치는 텍스트 숨기기 */
+    text-overflow: ellipsis; /* 말줄임 표시 (...) */
+    margin: 0px;
+    font-weight: bold;
+}
+
+.category-box {
+    background-color: #fff;
+    height: 40px; 
+    padding: 3px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+    font-size: 1rem;
+}
+
+/* 카테고리 색상 알려주는 박스 */
+.transparent-box {
+    background-color: rgba(255, 255, 255, 0);
+    border-radius: 10px;
+    padding: 10px;
+    margin-left: 10px;
+    text-align: center;
+    width: 180px !important;
+    height: 100px;
+    font-size: 12px;
+}
+
+.darkpink {
+    color: #FF9999;
+}
+
+.apricot {
+    color: #FFB76F;
+}
+
+.yellow {
+    color: #FDEA3B;
+}
+
+.green {
+    color: #7BEF7B;
+}
+
+.sky {
+    color: #99CCFF;
+}
+
+.pink {
+    color: #FF99CC;
+}
+
+.teal {
+    color: #21FFFF; 
+}
+
+.lavender {
+    color: #CC99FF;
+}
+
+/* Spending Info - 아래에 배치 */
+.summery-container {
+    background-color: #fff;
+    border-radius: 15px;
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.spending-info {
+    display: inline-block;
+    font-size: 14px;
+}
+
+.evaluation, .suggestions {
+    text-align: left;
+    background-color: #F9F4E2;
+    border-radius: 15px;
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+.evaluation h6, .suggestions h6 {
+    font-family: 'EliceDigitalBaeum-Bd', sans-serif;
+    color: #527835;
+}
+
+.evaluationmsg, .encouragement{
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background-color: #F9F4E2;
+    padding: 10px 0;
+    display: flex;
+    justify-content: space-around;
+    border-top: 1px solid #ddd;
+}
+
+.bottom-nav a {
+    text-align: center;
+    color: #FFCD00;
+}
+
+.bottom-nav a img {
+    width: 25px;
+    height: 25px;
+}
+
+.ui-datepicker-header {
+    width: 100%;
+}
+
+#edit-encouragement {
+    width: 70%;  
+    height: 80px;  
+    padding: 15px;  
+    border-radius: 10px;  
+    align-items: center;
+    border: 2px solid #6D9C48;
+    margin-bottom: 15px;
+    font-size: 16px; 
+    resize: none; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: block;
+    margin: 0 auto;
+}
+
+#save-encouragement {
+    background-color: #FFCD00;
+    color: white;
+    border: none;
+    width: 30%;
+    height: 40px;
+    font-size: 18px;
+    border-radius: 25px;
+    display: block;
+    margin: 0 auto;
+}

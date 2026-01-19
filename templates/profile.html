@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+
+
+
+{% block title %}모아모아 :: 똑똑한 용돈 관리 습관{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ static('css/profile.css') }}">
+
+<style>
+    .container {
+        height: 100vh;
+        overflow-y: auto;
+    }
+</style>
+
+    <div class="container">
+
+
+        <!-- 부모님 환영 메시지 -->
+        <div class="greeting">
+            <img src="#" alt="프로필 이미지" class="profile-picture">
+            <p>안녕하세요.<br><span class="partner_first_name">{{ child.first_name }}</span> 님의 부모님!</p>
+        </div>
+
+        <!-- 자녀 프로필 카드 컨테이너 -->
+        <div class="card-container"></div>
+
+        <!-- + 키즈 계정 추가 -->
+        <div class="add-account">+키즈 계정 추가</div>
+
+        <!-- 자녀 정보 수정 폼 (숨김 처리) -->
+        <div class="edit-form-container" style="display: none;">
+            <h4>프로필 수정</h4>
+            <input type="text" id="edit-firstname" placeholder="이름"><br>
+            <input type="date" id="edit-birthday" placeholder="생일" required max="" onkeydown="return false;"><br>
+            <input type="password" id="edit-password" placeholder="새 비밀번호"><br>
+            <form class="file-upload-form">
+                <label for="edit-upload" class="custom-file-upload">사진 선택</label>
+                <input type="file" id="edit-upload" style="display:none;" onchange="showFileName()" />
+                <span id="file-name"> </span>
+            </form>
+            <button id="save-button">저장</button>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_script %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 오늘 날짜를 YYYY-MM-DD 형식으로 가져오기
+            const today = new Date().toISOString().split('T')[0];
+            
+            // 생일 입력 필드의 max 속성 설정
+            document.getElementById('edit-birthday').setAttribute('max', today);
+            
+            // API에서 부모 프로필 가져오기
+            fetch('/api/v1/accounts/', {
+                method: 'GET',
+                credentials: 'include',  // 쿠키를 포함하여 요청
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => {
+                    if (response.status === 401) {  // 401 Unauthorized 확인
+                        window.location.href = '/login/';  // 로그인 페이지로 리다이렉트
+                        return;
+                    }
+                    return response.json();
+                })
+                .then(data => {
+
+                    // 부모님 환영 메시지를 추가하는 부분
+                    const greetingContainer = document.querySelector('.greeting p');
+                    let childNames = data.children.map(child => `<span class="partner_first_name">${child.first_name}</span>`);
+
+                    let greetingMessage = `안녕하세요.<br>${childNames.join(', ')} 자녀의 부모님!`;
+
+                    greetingContainer.innerHTML = greetingMessage;
+
+                    // 응답에서 프로필 이미지 URL 가져오기
+                    const profileImageUrl = data.parent.images;  // 서버에서 보내준 프로필 이미지 URL
+                    // 이미지 태그의 src 속성 업데이트
+                    const profilePictureElement = document.querySelector('.profile-picture');
+                    profilePictureElement.src = profileImageUrl;
+
+                    // 자녀 프로필 카드를 추가하는 부분
+                    const container = document.getElementsByClassName('card-container')[0];
+                    data.children.forEach((child, index) => {
+                        const profileCard = document.createElement('div');
+                        profileCard.classList.add('profile-card');
+                        const childImage = child.images ? child.images : "{{ static('default_profile.png') }}";
+                        
+                        const remainingAmount = child.total || 0;  // 자녀의 총 잔액
+
+                        profileCard.innerHTML = `
+                            <div class="profile-image">
+                                <img src="${child.images}" class="Child ${index + 1}" alt="Child ${index + 1}">
+                                <button class="edit-button" data-child-id="${child.id}">프로필 수정</button>
+                            </div>
+
+                            <a href="${child.id}/" class="text-decoration-none text-black"><div class="profile-info">
+                                <h5>${child.first_name} (ID: ${child.username})</h5>
+                                <p>생일: ${child.birthday}</p>
+                                <p>현재 잔액: ${remainingAmount.toLocaleString()}원</p>
+                            </div></a>
+                            <div class="profile-edit">
+                                <div class="delete-button" data-child-id="${child.id}">삭제</div>
+                            </div>
+                        `;
+                        container.appendChild(profileCard);
+                    });
+
+                    // 프로필 수정 버튼 클릭 이벤트 처리
+                    document.querySelectorAll('.edit-button').forEach(button => {
+                        button.addEventListener('click', function () {
+                            const childId = this.getAttribute('data-child-id');
+                            editChildProfile(childId);
+                        });
+                    });
+
+                    // 삭제 버튼 클릭 이벤트 처리
+                    document.querySelectorAll('.delete-button').forEach(button => {
+                        button.addEventListener('click', function () {
+                            const childId = this.getAttribute('data-child-id');
+                            if (confirm('정말로 이 자녀 계정을 삭제하시겠습니까?')) {
+                                deleteChild(childId);
+                            }
+                        });
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        });
+
+        function editChildProfile(childId) {
+
+            // API에서 자녀의 현재 정보 가져오기
+            fetch(`/api/v1/accounts/children/${childId}/`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+
+                    // 수정 폼에 자녀의 현재 정보 채워넣기
+                    document.getElementById('edit-firstname').value = data.child.first_name;
+                    document.getElementById('edit-birthday').value = data.child.birthday;
+                    document.getElementById('edit-password').value = ''; // 비밀번호는 공란으로 시작
+
+                    // 수정 폼 표시
+                    document.querySelector('.edit-form-container').style.display = 'block';
+
+                    // 저장 버튼 클릭 이벤트 처리
+                    document.getElementById('save-button').addEventListener('click', function () {
+                        const newFirstName = document.getElementById('edit-firstname').value;
+                        const newBirthday = document.getElementById('edit-birthday').value;
+                        const newPassword = document.getElementById('edit-password').value;
+                        const file = document.getElementById('edit-upload').files[0];
+
+                        updateChildProfile(childId, newFirstName, newBirthday, newPassword, file);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function updateChildProfile(childId, newFirstName, newBirthday, newPassword, newFile) {
+            if (newPassword) {
+                // 8자 이상
+                if (newPassword.length < 8) {
+                    alert('비밀번호는 8자 이상이어야 합니다.');
+                    return;
+                }
+
+                // 문자와 숫자 포함 여부
+                const hasLetter = /[a-zA-Z]/.test(newPassword);
+                const hasNumber = /[0-9]/.test(newPassword);
+
+                if (!(hasLetter && hasNumber)) {
+                    alert('비밀번호는 문자와 숫자를 모두 포함해야 합니다.');
+                    return;
+                }
+
+                for (let i = 0; i < newPassword.length - 3; i++) {
+                    if (newPassword[i] === newPassword[i+1] &&
+                    newPassword[i+1] === newPassword[i+2] &&
+                    newPassword[i+2] === newPassword[i+3]) {
+                        alert('동일한 문자를 4번 이상 연속해서 사용할 수 없습니다.');
+                        return;
+                    }
+                }
+            }
+            const formData = new FormData();
+            formData.append('firstname', newFirstName);
+            formData.append('birthday', newBirthday);
+            if (newPassword) {
+                formData.append('password', newPassword);
+            }
+            if (newFile) {
+                formData.append('profile_image', newFile);
+            }
+            fetch(`/api/v1/accounts/children/${childId}/`, {
+                method: 'PUT',
+                credentials: 'include',
+                //headers: { 'Content-Type': 'application/json' },
+                body : formData
+                //body: JSON.stringify(requestData)
+            })
+                .then(response => {
+
+                    if (response.ok) {
+                        alert('프로필이 성공적으로 수정되었습니다.');
+                        window.location.reload();  // 수정 후 페이지 새로고침
+                    } else {
+                        return response.json().then(data => {
+                            alert('프로필 수정 중 오류가 발생했습니다: ' + data.error);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('프로필 수정 중 오류가 발생했습니다.');
+                });
+        }
+
+        function deleteChild(childId) {
+            fetch(`/api/v1/accounts/children/${childId}/`, {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => {
+                    if (response.status === 204) {
+                        alert('자녀 계정이 성공적으로 삭제되었습니다.');
+                        window.location.reload(); // 페이지 새로고침으로 삭제된 자녀 목록 갱신
+                    } else {
+                        return response.json().then(data => {
+                            alert('삭제 중 오류가 발생했습니다: ' + data.error);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('삭제 중 오류가 발생했습니다.');
+                });
+        }
+    </script>
+    <script>
+    function showFileName() {
+        const input = document.getElementById('edit-upload');
+        const fileName = input.files[0]?.name || " ";
+        document.getElementById('file-name').textContent = fileName;
+        }
+    </script>
+{% endblock %}

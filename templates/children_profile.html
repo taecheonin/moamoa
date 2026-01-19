@@ -1,0 +1,308 @@
+{% extends 'base_children.html' %}
+
+
+
+{% block title %}모아모아 :: 똑똑한 용돈 관리 습관{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ static('css/children_profile.css') }}">
+<style>
+    .container {
+        height: 100vh;
+        overflow-y: auto;
+    }
+    .delete-btn {
+        cursor: pointer;
+        color: red;
+        font-size: 0.8em;
+        margin-right: 5px;
+    }
+</style>
+
+<div class="container">
+  <!-- 아이 환영 메시지 -->
+  <div class="text-center mt-3-1">
+    <img id="child-profile-image" src="" alt="프로필 이미지" class="profile-image">
+    <h2 id="child-greeting">아이의 이름을 불러옵니다...</h2>
+  </div>
+
+  <!-- 용돈기입장 섹션 -->
+  <div class="spending-log mt-4 p-3" style="background-color: #FFF4DB; border-radius: 10px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">용돈기입장</h5>
+      <!-- 년월 선택 입력 필드 -->
+      <div class="d-flex">
+        <select id="year-picker" class="form-select w-auto" style="background-color: rgb(255, 252, 241); border-color: #FFCD00;">년</select>
+        <select id="month-picker" class="form-select w-auto ms-2" style="background-color: rgb(255, 252, 241); border-color: #FFCD00;">월</select>
+      </div> 
+    </div>
+    <table class="table text-center">
+      <thead>
+        <tr>
+          <th>날짜</th>
+          <th>내용</th>
+          <th>금액</th>
+          <th>남은 돈</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="diary-table-body">
+        <!-- 데이터가 여기에 추가됩니다 -->
+      </tbody>
+    </table>
+    <div class="text-center">
+      <a href="#" id="load-more-btn" class="text-muted">더보기</a>
+    </div>
+  </div>
+
+  <!-- 응원 메시지 -->
+  <div class="encouragement mt-4 p-3" style="background-color: #FFFCD6; border-radius: 10px;">
+    <h5 class="mb-0">응원의 메시지</h5>
+    <p>비어있음</p>
+  </div>
+</div>
+
+<!-- 하단 네비게이션 -->
+<div class="bottom-nav text-center">
+  <a href="#" id="chatbot-button" class="nav-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="white" class="bi bi-journal-plus" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M8 5.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V10a.5.5 0 0 1-1 0V8.5H6a.5.5 0 0 1 0-1h1.5V6a.5.5 0 0 1 .5-.5"/>
+        <path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2"/>
+        <path d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1z"/>
+    </svg>      
+  </a>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const childId = window.location.pathname.split("/")[2];  // URL에서 자녀 ID 추출
+    const yearPicker = document.getElementById('year-picker');  // 년도 선택 요소
+    const monthPicker = document.getElementById('month-picker');  // 월 선택 요소
+    const loadMoreBtn = document.getElementById('load-more-btn');  // 더보기 버튼
+    const profileImageElement = document.getElementById('child-profile-image');  // 프로필 이미지 요소
+    const greeting = document.getElementById('child-greeting');  // 환영 메시지 요소
+    const encouragementElement = document.querySelector('.encouragement p');  // 응원 메시지를 표시할 요소
+    let allEntries = [];  // 모든 기록을 저장할 배열
+    let currentIndex = 0;  // 현재 표시 중인 항목의 인덱스
+    const itemsPerPage = 5;  // 페이지 당 항목 수
+    let expanded = false;  // 더보기 버튼 상태 (확장 여부)
+
+    // 자녀 정보 가져오기
+    fetch(`/api/v1/accounts/children/${childId}/`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => {
+        if (response.status === 403) {  // 403 Forbidden이면 잘못된 접근
+            window.location.href = '/access-error/';  // 에러 페이지 엔드포인트로 이동
+            return;  // 에러 페이지로 이동 후 코드 실행 중단
+        } else if (response.status === 401) {  // 401 Unauthorized이면 로그인 필요
+            window.location.href = '/login/';
+            return;
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data && data.child) {
+            greeting.textContent = `${data.child.first_name} 반가워!`;
+            profileImageElement.src = data.child.images ? data.child.images : `{{ static('images/default_profile.png') }}`;
+            encouragementElement.textContent = data.child.encouragement || "비어있음";
+        }
+    })
+    .catch(error => {
+        console.error('프로필을 불러올 수 없습니다.', error);
+    });    
+
+    // 기록이 있는 년/월 가져오기
+    fetch(`/api/v1/diary/${childId}/available-months/`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        const availableMonths = data.available_months;  // 사용 가능한 월 리스트 (형식: "YYYY-MM")
+        const availableYears = {};  // 사용 가능한 년도별로 저장할 객체
+
+        availableMonths.forEach(month => {
+            const [year] = month.split('-');  // 년도만 추출
+            availableYears[year] = true;  // 해당 년도를 저장
+        });
+
+        // 사용 가능한 년도 옵션 추가
+        Object.keys(availableYears).forEach(year => {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            yearPicker.appendChild(option);
+        });
+
+        // 초기 선택: 최신 년도와 최신 월
+        const latestYear = Object.keys(availableYears).sort().pop();  // 가장 최신 년도
+        yearPicker.value = latestYear;  // 최신 년도로 설정
+
+        // 모든 월을 1~12월로 고정 설정
+        populateMonthPicker();
+
+        // 최신 월로 데이터 가져오기
+        const currentDate = new Date();
+        const currentMonth = (currentDate.getMonth() + 1).toString().padStart(2, '0');  // 현재 월
+        monthPicker.value = currentMonth;  // 최신 월로 기본 설정
+        fetchDiary(latestYear, currentMonth);  // 최신 년도와 월로 데이터 가져오기
+    })
+    .catch(error => {
+        console.error('월별 데이터를 불러올 수 없습니다.', error);
+    });
+
+    // 월 선택을 갱신하는 함수 (1~12월 고정 표시)
+    function populateMonthPicker() {
+        monthPicker.innerHTML = '';  // 기존 월 옵션 제거
+        for (let i = 1; i <= 12; i++) {
+            const option = document.createElement('option');
+            option.value = i.toString().padStart(2, '0');  // 월을 두 자리로 표시
+            option.textContent = i;  // 월 숫자 표시
+            monthPicker.appendChild(option);
+        }
+    }
+
+    // 용돈기입장 데이터를 가져오는 함수
+    function fetchDiary(year, month) {
+        fetch(`/api/v1/diary/${childId}/${year}/${month}/`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then((response) => response.json())
+        .then((data) => {
+            allEntries = data.diary;  // 모든 기록을 저장
+            currentIndex = 0;  // 현재 인덱스를 초기화
+            expanded = false;  // 확장 상태를 초기화
+            loadMoreBtn.textContent = '더보기';  // 버튼 텍스트를 "더보기"로 설정
+            displayEntries();  // 항목을 표시
+        })
+        .catch((error) => {
+            console.error('용돈기입장을 불러올 수 없습니다.', error);
+        });
+    }
+
+    // 항목을 표시하는 함수
+    function displayEntries() {
+        const diaryTableBody = document.getElementById('diary-table-body');  // 테이블 바디 요소
+        diaryTableBody.innerHTML = '';  // 테이블을 비움
+        const itemsToShow = expanded ? allEntries : allEntries.slice(0, itemsPerPage);  // 확장 여부에 따라 표시할 항목 결정
+
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear().toString(); // 현재 년도 데이터
+        const currentMonth = (currentDate.getMonth() + 1).toString().padStart(2, '0'); // 현재 월
+        
+
+        itemsToShow.forEach(entry => {
+            const sign = entry.transaction_type === '지출' ? '-' : '+';  // 지출 또는 수입에 따라 부호 결정
+            const formattedAmount = `${sign} ${parseInt(entry.amount).toLocaleString()}원`;  // 금액 포맷
+            const amountClass = entry.transaction_type === '지출' ? 'expense' : 'income';  // 지출/수입에 따른 클래스 설정
+            
+            // 날짜를 mm.dd. 형식으로 변환
+            const [year, month, day] = entry.today.split('-');
+            const formattedDate = `${month}.${day}`;
+            
+            const remainingAmount = parseInt(entry.remaining).toLocaleString();  // 남은 금액 포맷
+
+            // 테이블 행 추가
+            const row = `
+            <tr data-entry-id="${entry.id}">
+                <td>${formattedDate}</td>
+                <td>${entry.diary_detail}</td>
+                <td class="${amountClass}">${formattedAmount}</td>
+                <td>${remainingAmount}원</td>
+                <td style="display: ${year === currentYear && month === currentMonth ? 'table-cell' : 'none'};">
+                    <span class="delete-btn">X</span>
+                </td>
+            </tr>`;
+            diaryTableBody.insertAdjacentHTML('beforeend', row);  // 행을 테이블에 추가
+        });
+
+        // "더보기"/"닫기" 버튼 설정
+        if (allEntries.length > itemsPerPage) {
+            loadMoreBtn.style.display = 'inline';  // 더보기 버튼 표시
+        } else {
+            loadMoreBtn.style.display = 'none';  // 항목이 5개 이하일 경우 더보기 버튼 숨김
+        }
+    }
+
+    // 년도 선택 시 데이터를 다시 불러오기
+    yearPicker.addEventListener('change', function() {
+        const selectedYear = yearPicker.value;  // 선택된 연도
+        const selectedMonth = monthPicker.value;  // 선택된 월
+        fetchDiary(selectedYear, selectedMonth);  // 선택된 연도와 월로 데이터 불러오기
+    });
+
+    // 월 선택 시 데이터를 다시 불러오기
+    monthPicker.addEventListener('change', function() {
+        const selectedYear = yearPicker.value;  // 선택된 연도
+        const selectedMonth = monthPicker.value;  // 선택된 월
+        fetchDiary(selectedYear, selectedMonth);  // 새로운 날짜로 데이터 불러오기
+    });
+
+    // 더보기 버튼 클릭 시 항목을 확장 또는 축소
+    loadMoreBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        expanded = !expanded;  // 확장 상태를 반대로 전환
+        if (expanded) {
+            loadMoreBtn.textContent = '닫기';  // 버튼 텍스트를 "닫기"로 변경
+        } else {
+            loadMoreBtn.textContent = '더보기';  // 버튼 텍스트를 "더보기"로 변경
+        }
+        displayEntries();  // 항목 다시 표시
+    });
+
+    // 챗봇 버튼 클릭 이벤트 추가
+    document.getElementById('chatbot-button').addEventListener('click', function() {
+        const childPk = childId;  // 자녀의 PK 값을 가져옴
+        window.location.href = `/chatbot/${childPk}/`;  // 해당 URL로 이동
+    });
+
+    // 삭제 버튼 클릭 추가
+    document.getElementById('diary-table-body').addEventListener('click', function(event) {
+        if (event.target.classList.contains('delete-btn')) {
+            const entryId = event.target.closest('tr').dataset.entryId;
+            if (confirm('정말 해당 항목을 삭제 하시겠습니까?')) {
+                deleteEntry(entryId);
+                window.location.href = `/child_profile/${childId}/`;
+            }
+        }
+    });
+
+    // 특정 항목 삭제 로직
+    function deleteEntry(entryId) {
+        fetch(`/api/v1/diary/chat/${entryId}/delete/`, {
+            method : 'DELETE',
+            credentials: 'include',
+            headers: {
+                'content-type': 'application/json',
+            },
+        })
+        .then(response => {
+            if (response.ok) {
+                // 삭제 성공 시 년월 다시 갱신
+                const selectedYear = yearPicker.value;
+                const selectedMonth = monthPicker.value;
+                fetchDiary(selectedYear, selectedMonth);
+                
+            }else {
+            throw new Error('삭제 실패');
+        }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+});
+</script>
+{% endblock %}
