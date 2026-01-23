@@ -5,55 +5,84 @@
 {% block title %}모아모아 :: 똑똑한 용돈 관리 습관{% endblock %}
 
 {% block content %}
-    <header>
-        <style>
-        .login-form { text-align: center; margin-top: 50px; }
-        .login-form h2 { font-family: 'EliceDigitalBaeum-Bd', sans-serif; }
-        .login-form input { width: 75%; height: 45px; font-size: 16px; margin-bottom: 15px; border-radius: 25px; border: 2px solid #6D9C48; padding: 10px; }
-        .login-button { background-color: #FFCD00; color: white;border: none; width: 65%; height: 50px; margin-top: 30px; font-size: 18px; border-radius: 25px; }
-        h2 {margin-top: 50px; margin-bottom: 30px;}
-        </style>
-    </header>
-    <div class="container content">
-        <div class="login-form">
-            <h2>키즈 로그인</h2>
-            <!-- 로그인 폼 -->
-            <form id="login-form">
-                <input type="text" id="username" placeholder="키즈 아이디" required autocomplete="username">
-                <input type="password" id="password" placeholder="키즈 비밀번호" required autocomplete="current-password">
-                <button type="submit" class="btn login-button">로그인</button>
-            </form>
-        </div>
+<header>
+    <style>
+        .login-form {
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .login-form h2 {
+            font-family: 'EliceDigitalBaeum-Bd', sans-serif;
+        }
+
+        .login-form input {
+            width: 75%;
+            height: 45px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            border-radius: 25px;
+            border: 2px solid #6D9C48;
+            padding: 10px;
+        }
+
+        .login-button {
+            background-color: #FFCD00;
+            color: white;
+            border: none;
+            width: 65%;
+            height: 50px;
+            margin-top: 30px;
+            font-size: 18px;
+            border-radius: 25px;
+        }
+
+        h2 {
+            margin-top: 50px;
+            margin-bottom: 30px;
+        }
+    </style>
+</header>
+<div class="container content">
+    <div class="login-form">
+        <h2>키즈 로그인</h2>
+        <!-- 로그인 폼 -->
+        <form id="login-form">
+            <input type="text" id="username" placeholder="키즈 아이디" required autocomplete="username">
+            <input type="password" id="password" placeholder="키즈 비밀번호" required autocomplete="current-password">
+            <button type="submit" class="btn login-button">로그인</button>
+        </form>
     </div>
+</div>
 
-    <script type="module" src="{{ static('js/module.js') }}"></script>
-    
-    <script type="module">
-        document.addEventListener('DOMContentLoaded', function() {
-            const loginForm = document.getElementById('login-form');
-            
-            // 로그인 폼 서브밋 이벤트 처리
-            loginForm.addEventListener('submit', function(e) {
-                e.preventDefault();  // 폼의 기본 동작을 막음 (페이지 리로드 방지)
-                
-                const username = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
+<script type="module" src="{{ static('js/module.js') }}"></script>
 
-                // 로그인 API 호출
-                fetch('/api/v1/accounts/login/', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        "username": username,
-                        "password": password
-                    })
+<script type="module">
+    document.addEventListener('DOMContentLoaded', function () {
+        const loginForm = document.getElementById('login-form');
+
+        // 로그인 폼 서브밋 이벤트 처리
+        loginForm.addEventListener('submit', function (e) {
+            e.preventDefault();  // 폼의 기본 동작을 막음 (페이지 리로드 방지)
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // 로그인 API 호출
+            fetch('/api/v1/accounts/login/', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    "username": username,
+                    "password": password
                 })
-                
+            })
+
                 .then(response => response.json())
                 .then(data => {
                     if (data.id) {
-                        window.location.href = `/child_profile/${data.id}/`;
+                        window.location.href = '/child_profile/';
                     } else {
                         alert('로그인 실패: 아이디 또는 비밀번호를 확인하세요.');
                     }
@@ -61,7 +90,7 @@
                 .catch(error => {
                     console.error('Error:', error);
                 });
-            });
         });
-    </script>
+    });
+</script>
 {% endblock %}

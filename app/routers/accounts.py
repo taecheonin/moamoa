@@ -21,7 +21,7 @@ from ..schemas.user import (
 from ..dependencies import (
     get_current_user, get_parent_user, authenticate_user,
     create_access_token, create_refresh_token, decode_token,
-    get_refresh_token_from_cookie
+    get_refresh_token_from_cookie, decode_magic_token
 )
 from ..utils.validators import validate_signup, custom_validate_password, hash_password_django
 
@@ -327,19 +327,25 @@ async def get_child(
     db: Session = Depends(get_db)
 ):
     """자녀 정보 조회"""
-    # 부모인 경우
+    # 1. 부모 계정인 경우: 자신의 자녀인지 확인
     if current_user.parents_id is None:
         child = db.query(User).filter(
             User.id == pk,
             User.parents_id == current_user.id
         ).first()
+        
         if not child:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="아이들을 찾을수가 없습니다."
-            )
+            # 혹시 자녀 본인이 부모 계정처럼 등록된 사례가 있는지 2차 확인
+            if current_user.id == pk:
+                child = current_user
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="자녀 정보를 찾을 수 없거나 접근 권한이 없습니다."
+                )
+    
+    # 2. 자녀 계정인 경우: 본인 정보만 조회 가능
     else:
-        # 자녀가 자신의 정보 조회
         if current_user.id != pk:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -443,3 +449,68 @@ async def delete_child(
     db.commit()
     
     return {"success": "자녀가 성공적으로 삭제되었습니다."}
+
+
+# === 카카오 보안 매직 링크 로그인 (GET/POST 모두 허용) ===
+@router.api_route("/magic-login/", methods=["GET", "POST"])
+async def magic_login(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """토큰을 이용한 보안 자동 로그인 및 리다이렉트"""
+    # POST와 GET 방식 모두에서 토큰 추출 (리다이렉트 시 메서드 유실 대비)
+    token = None
+    if request.method == "POST":
+        try:
+            form_data = await request.form()
+            token = form_data.get("token")
+        except:
+            pass
+    
+    if not token:
+        token = request.query_params.get("token")
+    
+    user_id = decode_magic_token(token) if token else None
+    
+    
+    if not user_id:
+    
+        return RedirectResponse(url="/", status_code=303)
+        
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+    
+        return RedirectResponse(url="/", status_code=303)
+    
+    
+    
+    # 세션 토큰(JWT) 발급
+    access_token = create_access_token(data={"sub": user.id})
+    refresh_token = create_refresh_token(data={"sub": user.id})
+    
+    # 리다이렉트 경로 확인 (기본값: /child_profile/)
+    next_url = request.query_params.get("next", "/child_profile/")
+    
+    
+    
+    # 세션 토큰(JWT) 발급
+    access_token = create_access_token(data={"sub": user.id})
+    refresh_token = create_refresh_token(data={"sub": user.id})
+    
+    # 지정된 경로 또는 기본 경로로 리다이렉트
+    response = RedirectResponse(url=next_url, status_code=303)
+    set_auth_cookies(response, access_token, refresh_token)
+    
+    return response
+
+
+@router.get("/me/")
+async def get_me(current_user: User = Depends(get_current_user)):
+    """현재 로그인한 사용자 정보 반환"""
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "first_name": current_user.first_name,
+        "is_parent": current_user.is_parent,
+        "total": current_user.total
+    }

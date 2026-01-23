@@ -1,11 +1,17 @@
-# 🎁 모아모아 (아이들을 위한 용돈기입장)
+# 모아모아 (아이들을 위한 용돈기입장)
 - **모아모아 홈페이지 : https://moamoa.kids**
 - **API 명세서 홈페이지 : https://documenter.getpostman.com/view/37988705/2sAXxTapsS**
 - 모아모아는 아이(5세~13세)들에게 금융에대한 이해와 교육을 알려주기 위해 만든 서비스이며, AI와의 채팅을통해 용돈기입장 작성을 도와주고 월간 용돈기입장의 데이터를 통해서 부모님들에게 아이의 소비 습관을 보여주고 그 소비습관에 맞는 방향성을 제시해주는 서비스입니다.
-- 🏅**내일배움캠프 최종프로젝트 최우수상 수상**
+- **내일배움캠프 최종프로젝트 최우수상 수상**
 
 ---
-## 🧩 버전 업데이트
+## 버전 업데이트
+- **2.1.0 Version (2026-01-23)**
+  - **카카오 발화문 모니터링 시스템 도입**: "용돈기입장" 관련 발화문을 데이터베이스에 자동 기록하여 실시간 모니터링 강화
+  - **보안 및 코드 안정성 강화**: 소스 코드 내 모든 `print` 문 및 파일 기반 로그 시스템을 제거하고 표준화된 예외 처리 적용
+  - **환경 설정 최적화**: `DATABASE_URL`, `CORS_ORIGINS` 등 주요 설정을 환경 변수(`.env`) 우선 방식으로 개선
+  - **카카오 챗봇 UI 정문화**: 리포트 카드 타이틀 및 안내 메시지 가독성 개선
+
 - **2.0.0 Version (2026-01-19)**
   - **Django에서 FastAPI로 백엔드 프레임워크 전면 마이그레이션**
   - Redis 의존성 제거: 인메모리 채팅 기록(In-memory Chat History) 시스템 도입으로 배포 간소화
@@ -44,7 +50,7 @@
    - 부모의 계정과 그 하위 계정인 자녀 계정이 서로 상호작용하여 자녀의 지출 습관과 분석을 AI를 통해 확인 할 수 있습니다.
    - 자녀는 AI와의 채팅을 통해 매우 쉽게 용돈기입장을 작성하여 용돈을 관리할 수 있습니다.
 ---
-## 🧑‍💻 역할
+## 역할
 
 |이름|역할|
 |----|----|
@@ -55,55 +61,68 @@
 
 ---
 
-## 🌟 주요 기능
+## 주요 기능
 
 - **회원가입 및 로그인**: 주 계정(부모님 계정)과 하위 계정(자녀 계정)을 나누어 부모님이 메인 페이지에서 카카오 소셜 로그인을 하여 자녀의 회원가입을 진행. 만들어진 자녀 계정은 메인 홈페이지의 자녀 로그인을 통해서 자녀 페이지로 진입 가능.
 - **용돈기입장 작성**: AI와의 대화를 통해 직접 AI가 용돈 기입장의 내용(사용한 날짜, 입출, 항목, 금액, 지출요약)을 정리하여 데이터베이스에 저장
 - **월간 소비습관 분석**: 월말 마다 AI가 자녀의 해당 월의 용돈 기입장을 가져와서 소비습관, 사용한 소비의 카테고리 분류 그리고 개선 방향성을 부모에게 요약하여 제공
+- **카카오 발화문 모니터링**: 챗봇 사용자의 "용돈기입장" 관련 발화문을 데이터베이스에 자동으로 수집하여 운영 효율성 및 AI 분석 품질 향상
 
 ---
 
-## 🔍 프로젝트 핵심 기술 및 버전
-- Programming Language : **Python 3.10**
-- Web Framework : **FastAPI 0.109.0**
-- Database : **SQLite3** (MariaDB 지원 예정)
-- Version Control : **Git, Github**
-- LLM : **Open AI, LangChain**
+## 프로젝트 핵심 기술 및 버전
+- Programming Language : **Python 3.13+**
+- Web Framework : **FastAPI 0.128.0**
+- Database : **MariaDB / MySQL** (SQLite3 호환)
+- Version Control : **Git / GitHub**
+- LLM : **OpenAI (GPT-4o-mini)**
 
-## 🛠️ 설치 방법
+## 설치 방법
 
-### 1️⃣ 저장소 클론
+### 저장소 클론
 
 ```bash
 git clone [https://github.com/strongdambi/moamoa.git
 ```
 
-### 2️⃣ 가상 환경 설정 및 패키지 설치
+### 가상 환경 설정 및 패키지 설치
 
 ```bash
 python -m venv venv
-source venv/bin/activate  # Mac
-source venv\Scripts\activate  # Windows
+source venv/bin/activate  # Linux/Mac
+# 또는
+source venv/Scripts/activate  # Windows
 pip install -r requirements.txt
 ```
 
-### 3️⃣ 개발 서버 실행
+### 환경 변수 설정
+
+`.env.example` 파일을 복사하여 `.env` 파일을 생성하고 필수 값을 입력합니다.
 
 ```bash
+cp .env.example .env
+# 이후 .env 파일을 열어 OPENAI_API_KEY, REST_API_KEY 등을 설정하세요.
+```
+
+### 개발 서버 실행
+
+```bash
+# 기본 실행 (Reload 모드)
 python main.py
-# 또는
-uvicorn main:app --reload
+
+# 또는 uvicorn 직접 실행
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ---
 
-## 🖇️ 와이어 프레임
+## 와이어 프레임
 
 ![image (1)](https://github.com/user-attachments/assets/855a476c-5724-4f73-b3c6-aa6841316a16)
 
 ---
 
-## 📋 API 명세서
+## API 명세서
 
 | 기능                    | HTTP 메서드 | 엔드포인트                                   | 설명                                                    |
 |-------------------------|-------------|---------------------------------------------|-------------------------------------------------------------|
@@ -117,54 +136,56 @@ uvicorn main:app --reload
 | **자녀 정보 조회**       | GET         | `/api/v1/accounts/children/{pk}/`           | 자녀의 생일, 이름, 아이디 프로필이미지 조회                                |
 | **자녀 정보 수정**       | PUT         | `/api/v1/accounts/children/{pk}/`         | 자녀의 생일, 이름, 아이디, 비밀번호, 프로필 수정                             |
 | **자녀 정보 삭제**       | DELETE      | `/api/v1/accounts/children/{pk}/`         | 자녀의 정보 및 데이터를 삭제                                                |
+| **보안 매직 링크 로그인** | ANY         | `/api/v1/accounts/magic-login/`             | 보안 토큰을 이용한 자동 로그인 및 리다이렉트                                |
+| **내 정보 조회**         | GET         | `/api/v1/accounts/me/`                      | 현재 로그인한 사용자의 기본 정보 반환                                       |
 | **자녀 월말 결산 작성**  | POST        | `/api/v1/diary/monthly/{child_id}/`     | 자녀의 월간 용돈기입장 데이터를 토대로 AI가 결산 작성                        |
 | **용돈기입장 작성**      | POST        | `/api/v1/diary/chat/`                       | AI와의 대화를 통해 수집한 json데이터를 저장                                 |
 | **AI챗봇 채팅 기록**     | GET         | `/api/v1/diary/chat/messages/{child_pk}/`  | AI와 자녀가 대화한 내용을 전달                                             |
 | **기입장 특정 삭제**     | DELETE      | `/api/v1/diary/chat/{diary_pk}/delete/`  | 자녀의 특정 용돈기입장 내용 삭제                                           |
 | **월별 용돈 기입장 조회**| GET         | `/api/v1/diary/{child_pk}/{year}/{month}/`| 년월을 기준으로 작성한 용돈기입장 조회                            |
 | **용돈기입장 데이터가있는 월 조회**| GET | `/api/v1/diary/{child_pk}/available-months/`| 용돈 기입장 데이터가 있는 월 조회                                    |
-
-
+| **카카오 챗봇 메시지 처리**| POST        | `/kakao/msg`                                | 카카오 챗봇으로부터 수신된 메시지 분석 및 처리                               |
 
 ---
 
-## 🖼️ ERD (Entity Relationship Diagram)
-
+## ERD (Entity Relationship Diagram)
 ### ERD 이미지
 ![moamoa_erd](https://github.com/user-attachments/assets/cb77ebea-f4d5-4078-9326-380445a616d3)
 
+---
+
+## 데이터베이스 관리
+
+이 프로젝트는 **MariaDB (MySQL)**를 기본 데이터베이스로 사용합니다.
+(환경 변수에 따라 **SQLite3**로도 구동이 가능합니다.)
 
 ---
 
-## 🛠️ 데이터베이스 관리
-
-이 프로젝트는 **SQLite3**을 기본 데이터베이스로 사용합니다.
-(추후**MySQL**로 전환 예정)
-
----
-
-## 🌍 시스템 아키텍처
+## 시스템 아키텍처
 
 ### 백엔드 구성
 
 - **FastAPI**: 비동기 API 설계를 위한 고성능 프레임워크.
-- **SQLAlchemy**: 데이터베이스 ORM 및 관리.
-- **KAKAO API**: 카카오 소셜 로그인을 위한 API.
-- **SQLite3**: 기본 데이터베이스.
-- **Langchain**: AI 서비스 사용을 위한 라이브러리.
-- **OpenAI**: GPT 4o-mini
-- **In-memory History**: 배포 편의성을 위한 메모리 기반 채팅 기록 관리.
-- **JWT**: 토큰 방식의 사용자 인증 시스템.
+- **SQLAlchemy (MySQL/MariaDB)**: 데이터베이스 ORM 및 관리 (Alembic 호환).
+- **KAKAO API**: 카카오 소셜 로그인 및 챗봇 인터페이스 연동.
+- **OpenAI (GPT-4o-mini)**: 챗봇 지능 및 자녀 소비 데이터 분석 수행.
+- **LangChain**: 효율적인 AI 메시지 체이닝 및 히스토리 관리.
+- **JWT & Passlib**: 보안 토큰 인증 및 강력한 비밀번호 암호화 시스템.
+- **Jinja2**: 동적인 웹 페이지 렌더링을 위한 템플릿 엔진.
+- **In-memory History**: 배포 간소화를 위한 메모리 기반 채팅 기록 관리.
+- **Monitoring System**: 실시간 사용자 발화 수집 및 서비스 품질 모니터링 엔진.
 
 ---
 
-
-## 🔐 보안
+## 보안
 
 - **HTTPS 사용**: 모든 API 요청은 HTTPS를 통해 암호화되어 전송됩니다.
-- **JWT 인증**: 사용자는 JWT 토큰을 통해 인증되며, 권한 관리가 이루어집니다.
-- **비밀번호 암호화**: 사용자의 비밀번호는 해시화되어 안전하게 저장됩니다.
-- **HTTP ONLY**: JavaScript를 통한 쿠키에 접근을 방지하여 쿠키 값에 접근을 막아줍니다.
+- **JWT 인증**: 액세스 및 리프레시 토큰 체계를 통해 보안 인증 및 권한 관리가 이루어집니다.
+- **비밀번호 호환성**: Django의 `PBKDF2 SHA256` 해싱 알고리즘과 호환되어 기존 데이터의 보안성을 유지합니다.
+- **HTTP ONLY**: JavaScript를 통한 쿠키 접근을 차단하여 XSS 공격으로부터 토큰 유출을 방지합니다.
+- **보안 매직 링크**: 카카오 연동 시 유효시간 10분의 일회용 토큰(Magic Token)을 사용하여 자동 로그인의 보안성을 확보합니다.
+- **Secure Handling**: 소스 코드 내 모든 불필요한 `print` 및 파일 로그를 제거하여 정보 유출 가능성을 원천 차단했습니다.
+- **CORS 정책**: 신뢰할 수 있는 도메인에 대해서만 API 접근을 허용하는 엄격한 CORS 정책을 적용합니다.
 
 ---
 

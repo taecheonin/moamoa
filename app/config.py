@@ -29,16 +29,21 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost"
     
     # 데이터베이스 설정
-    DATABASE_URL: str = "sqlite:///./db.sqlite3"
+    DATABASE_URL: str = "mysql+pymysql://userid:password@localhost/databases?charset=utf8mb4"
     
     # 파일 경로 설정
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
     MEDIA_DIR: Path = BASE_DIR / "media"
     STATIC_DIR: Path = BASE_DIR / "static"
     TEMPLATES_DIR: Path = BASE_DIR / "templates"
+    LOGS_DIR: Path = BASE_DIR / "logs"
     
     # CORS 설정
-    CORS_ORIGINS: list = ["http://localhost"]
+    CORS_ORIGINS: list = [
+        "http://localhost",
+        "https://moamoa.kids",
+        "https://www.moamoa.kids"
+    ]
     
     class Config:
         env_file = ".env"

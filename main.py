@@ -9,23 +9,23 @@ from contextlib import asynccontextmanager
 
 from app.config import settings
 from app.database import init_db
-from app.routers import accounts_router, diaries_router, webs_router
+from app.routers import accounts_router, diaries_router, webs_router, kakao_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """애플리케이션 시작/종료 이벤트"""
-    # 시작 시
-    print("🚀 모아모아 FastAPI 서버 시작...")
+
+    # 데이터베이스 초기화
+    init_db()
     
-    # 미디어 디렉토리 생성
+    # 미디어 및 로그 디렉토리 생성
     settings.MEDIA_DIR.mkdir(parents=True, exist_ok=True)
     (settings.MEDIA_DIR / "profile_images").mkdir(parents=True, exist_ok=True)
+    settings.LOGS_DIR.mkdir(parents=True, exist_ok=True)
     
     yield
-    
-    # 종료 시
-    print("👋 모아모아 FastAPI 서버 종료...")
+
 
 
 # FastAPI 앱 생성
@@ -53,6 +53,7 @@ app.mount("/media", StaticFiles(directory=str(settings.MEDIA_DIR)), name="media"
 app.include_router(accounts_router)
 app.include_router(diaries_router)
 app.include_router(webs_router)
+app.include_router(kakao_router, prefix="/kakao")
 
 
 @app.get("/health")

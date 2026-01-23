@@ -177,7 +177,7 @@ def chat_with_bot(user_input: str, user_id: int) -> str:
             )
         return response
     except Exception as e:
-        print(f"챗봇 오류: {str(e)}")
+        
         return "죄송합니다. 채팅 서비스에 일시적인 문제가 발생했습니다."
 
 

@@ -26,6 +26,7 @@ class FinanceDiary(Base):
     today = Column(Date, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    kakao_sync_id = Column(String(100), nullable=True, index=True)
     
     # 관계 설정
     child = relationship("User", foreign_keys=[child_id], backref="diaries")
@@ -61,3 +62,17 @@ class MonthlySummary(Base):
     
     def __repr__(self):
         return f"<MonthlySummary(id={self.id}, child_id={self.child_id}, {self.year}/{self.month})>"
+
+
+class KakaoSync(Base):
+    """
+    카카오 상호작용 동기화 모델
+    맞아요/아니요 버튼의 상태를 추적하여 중복 등록 방지 및 취소 기능을 지원합니다.
+    """
+    __tablename__ = "kakao_sync"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    sync_id = Column(String(100), unique=True, nullable=False, index=True)
+    status = Column(String(20), nullable=False)  # "SAVED", "CANCELLED"
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

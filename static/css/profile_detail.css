@@ -15,7 +15,7 @@ svg {
     font-family: 'EliceDigitalBaeum-Bd', sans-serif;
 }
 
-.loading-container{
+.loading-container {
     margin: 20px auto;
     width: 80%;
     text-align: center;
@@ -51,17 +51,19 @@ svg {
 .profile-info h5 {
     margin: 0;
     font-family: 'EliceDigitalBaeum-Bd', sans-serif;
-}   
+}
 
 .profile-info p {
     margin: 5px 0;
     font-size: 14px;
 }
+
 /* 내용 부분 */
 .summaryview {
     text-align: center;
     font-family: 'EliceDigitalBaeum-Bd', sans-serif;
 }
+
 /* 차트와 최대 소비 카테고리를 한 줄에 배치 */
 .spending-summary-container {
     display: flex;
@@ -93,23 +95,26 @@ svg {
     border-radius: 10px;
     padding: 10px;
     text-align: center;
-    margin: 10px; 
-    width: 180px; 
-    height: 90px; 
+    margin: 10px;
+    width: 180px;
+    height: 90px;
     overflow: hidden;
 }
 
-.max-expenditure-box p, .max-expenditure-box .category-box {
+.max-expenditure-box p,
+.max-expenditure-box .category-box {
     white-space: nowrap;
-    overflow: hidden; /* 넘치는 텍스트 숨기기 */
-    text-overflow: ellipsis; /* 말줄임 표시 (...) */
+    overflow: hidden;
+    /* 넘치는 텍스트 숨기기 */
+    text-overflow: ellipsis;
+    /* 말줄임 표시 (...) */
     margin: 0px;
     font-weight: bold;
 }
 
 .category-box {
     background-color: #fff;
-    height: 40px; 
+    height: 40px;
     padding: 3px;
     display: flex;
     justify-content: center;
@@ -155,7 +160,7 @@ svg {
 }
 
 .teal {
-    color: #21FFFF; 
+    color: #21FFFF;
 }
 
 .lavender {
@@ -167,7 +172,7 @@ svg {
     background-color: #fff;
     border-radius: 15px;
     padding: 15px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    /* box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); */
     margin-bottom: 20px;
     text-align: center;
 }
@@ -177,7 +182,8 @@ svg {
     font-size: 14px;
 }
 
-.evaluation, .suggestions {
+.evaluation,
+.suggestions {
     text-align: left;
     background-color: #F9F4E2;
     border-radius: 15px;
@@ -185,12 +191,15 @@ svg {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     margin-bottom: 20px;
 }
-.evaluation h6, .suggestions h6 {
+
+.evaluation h6,
+.suggestions h6 {
     font-family: 'EliceDigitalBaeum-Bd', sans-serif;
     color: #527835;
 }
 
-.evaluationmsg, .encouragement{
+.evaluationmsg,
+.encouragement {
     margin-top: 10px;
     margin-bottom: 10px;
 }
@@ -221,15 +230,15 @@ svg {
 }
 
 #edit-encouragement {
-    width: 70%;  
-    height: 80px;  
-    padding: 15px;  
-    border-radius: 10px;  
+    width: 70%;
+    height: 80px;
+    padding: 15px;
+    border-radius: 10px;
     align-items: center;
     border: 2px solid #6D9C48;
     margin-bottom: 15px;
-    font-size: 16px; 
-    resize: none; 
+    font-size: 16px;
+    resize: none;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     display: block;
     margin: 0 auto;

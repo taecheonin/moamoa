@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 중 - 모아모아</title>
+    <link rel="stylesheet" href="{{ static('css/style.css') }}">
+    <style>
+        body {
+            background-color: #FFFCD6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Pretendard', sans-serif;
+        }
+
+        .loader-container {
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #FFCD00;
+            border-top: 5px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        h2 {
+            color: #333;
+            font-weight: 600;
+        }
+
+        p {
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loader-container">
+        <div class="spinner"></div>
+        <h2>로그인 확인 중...</h2>
+        <p>잠시만 기다려 주세요.</p>
+    </div>
+
+    <form id="magic-form"
+        action="/api/v1/accounts/magic-login/?token={{ token }}{% if next %}&next={{ next }}{% endif %}" method="POST"
+        style="display: none;">
+        <input type="hidden" name="token" value="{{ token }}">
+    </form>
+
+    <script>
+        // 페이지 로드 시 즉시 POST 제출
+        window.onload = function () {
+            document.getElementById('magic-form').submit();
+        };
+    </script>
+</body>
+
+</html>

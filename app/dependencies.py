@@ -2,7 +2,7 @@
 FastAPI 의존성 함수들
 JWT 인증, 데이터베이스 세션 등을 관리합니다.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import Depends, HTTPException, status, Request
@@ -39,6 +39,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(days=settings.ACCESS_TOKEN_EXPIRE_DAYS)
+    
+    # ID는 문자열로 저장하는 것이 표준 관례
+    if "sub" in to_encode:
+        to_encode["sub"] = str(to_encode["sub"])
+        
     to_encode.update({"exp": expire, "type": "access"})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
     return encoded_jwt
@@ -51,9 +56,36 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) 
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    
+    # ID는 문자열로 저장하는 것이 표준 관례
+    if "sub" in to_encode:
+        to_encode["sub"] = str(to_encode["sub"])
+        
     to_encode.update({"exp": expire, "type": "refresh"})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
     return encoded_jwt
+
+
+def create_magic_token(user_id: int) -> str:
+    """보안을 위한 10분짜리 일회용 매직 토큰 생성"""
+    # 3.13+ 에서는 utcnow() 대신 timezone.utc 사용 권장
+    expire = datetime.now(timezone.utc) + timedelta(minutes=10)
+    # sub는 문자열로 저장하는 것이 JWT 표준 관례에 더 가까움
+    to_encode = {"sub": str(user_id), "exp": expire, "type": "magic"}
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def decode_magic_token(token: str) -> Optional[int]:
+    """매직 토큰 디코딩 및 검증"""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        if payload.get("type") == "magic":
+            user_id = payload.get("sub")
+            return int(user_id) if user_id else None
+    except Exception as e:
+        
+        pass
+    return None
 
 
 def decode_token(token: str) -> Optional[dict]:
@@ -103,9 +135,14 @@ async def get_current_user(
     if payload.get("type") != "access":
         raise credentials_exception
     
-    # 사용자 ID 추출
-    user_id: int = payload.get("sub")
-    if user_id is None:
+    # 사용자 ID 추출 (문자열인 경우 숫자로 변환)
+    user_id_raw = payload.get("sub")
+    if user_id_raw is None:
+        raise credentials_exception
+    
+    try:
+        user_id = int(user_id_raw)
+    except (ValueError, TypeError):
         raise credentials_exception
     
     # 사용자 조회
@@ -132,8 +169,13 @@ async def get_current_user_optional(
     if payload is None or payload.get("type") != "access":
         return None
     
-    user_id = payload.get("sub")
-    if user_id is None:
+    user_id_raw = payload.get("sub")
+    if user_id_raw is None:
+        return None
+    
+    try:
+        user_id = int(user_id_raw)
+    except (ValueError, TypeError):
         return None
     
     return db.query(User).filter(User.id == user_id).first()

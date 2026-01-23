@@ -20,3 +20,5 @@ langchain-openai==1.1.7
 pytz==2025.2
 pillow==12.1.0
 orjson==3.11.5
+pymysql==1.1.1
+cryptography==44.0.0

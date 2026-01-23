@@ -1,26 +1,39 @@
 {% extends 'base.html' %}
 
-
-
 {% block title %}모아모아 :: 똑똑한 용돈 관리 습관{% endblock %}
 
-{% block content %}
+{% block extra_head %}
+<script src="https://d3js.org/d3.v7.min.js"></script>
 <link rel="stylesheet" href="{{ static('css/profile.css') }}">
-
+<link rel="stylesheet" href="{{ static('css/profile_detail.css') }}?var=0.0.1">
+<!-- jQuery와 jQuery UI 추가 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css" />
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
 <style>
     .container {
         height: 100vh;
         overflow-y: auto;
     }
+
+    #report-section {
+        display: none;
+    }
+
+    #dashboard-section {
+        display: block;
+    }
 </style>
+{% endblock %}
 
-    <div class="container">
-
-
+{% block content %}
+<div class="container">
+    <!-- 대시보드 섹션 (자녀 목록) -->
+    <div id="dashboard-section">
         <!-- 부모님 환영 메시지 -->
         <div class="greeting">
             <img src="#" alt="프로필 이미지" class="profile-picture">
-            <p>안녕하세요.<br><span class="partner_first_name">{{ child.first_name }}</span> 님의 부모님!</p>
+            <p>안녕하세요.<br> 부모님!</p>
         </div>
 
         <!-- 자녀 프로필 카드 컨테이너 -->
@@ -28,6 +41,10 @@
 
         <!-- + 키즈 계정 추가 -->
         <div class="add-account">+키즈 계정 추가</div>
+
+        <div class="text-center mt-5 mb-5">
+            <a href="/" class="btn btn-outline-secondary">모아모아 홈으로 이동</a>
+        </div>
 
         <!-- 자녀 정보 수정 폼 (숨김 처리) -->
         <div class="edit-form-container" style="display: none;">
@@ -43,218 +60,522 @@
             <button id="save-button">저장</button>
         </div>
     </div>
+
+    <!-- 리포트 상세 섹션 -->
+    <div id="report-section">
+        <!-- Greeting -->
+        <div class="greeting">
+            <h4>안녕하세요. 부모님!</h4>
+        </div>
+
+        <!-- 년월 선택 입력 필드 -->
+        <div class="d-flex justify-content-center mb-3">
+            <select id="year-picker" class="form-select w-auto"
+                style="background-color: rgb(255, 252, 241); border-color: #FFCD00;">년</select>
+            <select id="month-picker" class="form-select w-auto ms-2"
+                style="background-color: rgb(255, 252, 241); border-color: #FFCD00;">월</select>
+        </div>
+
+        <!-- Profile Card -->
+        <div class="profile-card">
+            <div class="profile-info">
+                <h5>현재 잔액: <span class="current-amount"></span></h5>
+            </div>
+        </div>
+
+        <div class="summery-container">
+            <!-- Spending Summary -->
+            <p class="summaryview">
+                <!-- <span class="summarymonth"></span>월 <span class="summaryname"></span> 자녀의 소비 -->
+                <span class="summarymonth"></span>월자녀의 소비
+            </p>
+            <div class="d-flex justify-content-between align-items-start spending-summary-container">
+                <!-- Pie Chart (왼쪽) -->
+                <div class="spending-chart">
+                    <div id="pie-chart"></div>
+                </div>
+
+                <!-- Maximum Expenditure Box (오른쪽) -->
+                <div class="max-expenditure-container">
+                    <div class="max-expenditure-box">
+                        <p>이번 달 최대 소비</p>
+                        <div class="category-box">
+                            <strong class="maximumconsumption"></strong>
+                        </div>
+                    </div>
+                    <!-- 투명 박스 -->
+                    <div class="transparent-box">
+                        <p>
+                            <span class="darkpink">⦁</span>음식
+                            <span class="apricot">⦁</span>음료/간식
+                            <span class="yellow">⦁</span>문구/완구<br />
+                            <span class="green">⦁</span>교통
+                            <span class="sky">⦁</span>문화/여가
+                            <span class="pink">⦁</span>선물<br />
+                            <span class="teal">⦁</span>저축
+                            <span class="lavender">⦁</span>기타/지출
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spending Info (아래에 배치) -->
+            <div class="spending-summary">
+                <div class="spending-info">
+                    <!-- <p>총 수입: <span class="totalincome">0</span>원</p>
+                    <p>총 지출: <span class="totalexpenses">0</span>원</p>
+                    <p>남은 금액: <span class="remainingamount">0</span>원</p> -->
+
+                    <p>총 수입: <span class="totalincome">0</span>원
+                        총 지출: <span class="totalexpenses">0</span>원
+                        남은 금액: <span class="remainingamount">0</span>원</p>
+
+                </div>
+            </div>
+
+            <!-- 로딩 메시지와 프로그래스 바를 담을 컨테이너 -->
+            <div class="spending-summary-red"></div>
+            <div class="loading-container" style="display: none;">
+                <div class="progress" role="progressbar" aria-label="Loading" aria-valuenow="0" aria-valuemin="0"
+                    aria-valuemax="100">
+                    <div class="progress-bar text-bg-warning" id="progress-bar" style="width: 0%">0%</div>
+                </div>
+            </div>
+
+            <!-- Evaluation -->
+            <div class="evaluation">
+                <h6>모아모아의 한마디✏️</h6>
+                <p class="evaluationmsg"></p>
+            </div>
+
+            <!-- Suggestions -->
+            <!-- <div class="suggestions">
+                <h6>아이에게 보내는 한 마디
+                    <img src="{{ static('images/message_icon.png') }}" id="edit-icon"
+                        style="cursor: pointer; width: 24px; height: 24px; display: inline-block; margin-left: 5px;"
+                        alt="Edit Icon">
+                </h6>
+                <div class="encouragement-message"></div>
+                <div id="encouragement-input" style="display: none;">
+                    <textarea id="edit-encouragement" placeholder="아이에게 보낼 응원의 메시지를 입력해주세요."
+                        class="custom-textarea"></textarea><br>
+                    <button id="save-encouragement">보내기</button>
+                </div>
+            </div> -->
+
+            <!-- <div class="text-center mt-4">
+                <button class="btn btn-outline-warning" onclick="showDashboard()">목록으로 돌아가기</button>
+            </div> -->
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_script %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // 오늘 날짜를 YYYY-MM-DD 형식으로 가져오기
-            const today = new Date().toISOString().split('T')[0];
-            
-            // 생일 입력 필드의 max 속성 설정
-            document.getElementById('edit-birthday').setAttribute('max', today);
-            
-            // API에서 부모 프로필 가져오기
-            fetch('/api/v1/accounts/', {
-                method: 'GET',
-                credentials: 'include',  // 쿠키를 포함하여 요청
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-                .then(response => {
-                    if (response.status === 401) {  // 401 Unauthorized 확인
-                        window.location.href = '/login/';  // 로그인 페이지로 리다이렉트
-                        return;
-                    }
-                    return response.json();
-                })
-                .then(data => {
+<script type="text/javascript">
+    // 전역 상태
+    let currentChildId = null;
 
-                    // 부모님 환영 메시지를 추가하는 부분
-                    const greetingContainer = document.querySelector('.greeting p');
-                    let childNames = data.children.map(child => `<span class="partner_first_name">${child.first_name}</span>`);
+    function getChildIdFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('child_id');
+    }
 
-                    let greetingMessage = `안녕하세요.<br>${childNames.join(', ')} 자녀의 부모님!`;
+    function showReport(childId) {
+        currentChildId = childId;
+        document.getElementById('dashboard-section').style.display = 'none';
+        document.getElementById('report-section').style.display = 'block';
 
-                    greetingContainer.innerHTML = greetingMessage;
+        // URL을 /profile/ 로 깨끗하게 유지 (파라미터 노출 방지)
+        window.history.replaceState({ child_id: childId }, '', window.location.pathname);
 
-                    // 응답에서 프로필 이미지 URL 가져오기
-                    const profileImageUrl = data.parent.images;  // 서버에서 보내준 프로필 이미지 URL
-                    // 이미지 태그의 src 속성 업데이트
-                    const profilePictureElement = document.querySelector('.profile-picture');
-                    profilePictureElement.src = profileImageUrl;
+        // 데이터 로드
+        loadProfileAndEncouragement(childId);
 
-                    // 자녀 프로필 카드를 추가하는 부분
-                    const container = document.getElementsByClassName('card-container')[0];
-                    data.children.forEach((child, index) => {
-                        const profileCard = document.createElement('div');
-                        profileCard.classList.add('profile-card');
-                        const childImage = child.images ? child.images : "{{ static('default_profile.png') }}";
-                        
-                        const remainingAmount = child.total || 0;  // 자녀의 총 잔액
+        // 년/월 데이터 가져와서 초기 요약 노출
+        fetchAvailableMonths(childId);
+    }
 
-                        profileCard.innerHTML = `
-                            <div class="profile-image">
-                                <img src="${child.images}" class="Child ${index + 1}" alt="Child ${index + 1}">
-                                <button class="edit-button" data-child-id="${child.id}">프로필 수정</button>
-                            </div>
+    function showDashboard() {
+        currentChildId = null;
+        document.getElementById('dashboard-section').style.display = 'block';
+        document.getElementById('report-section').style.display = 'none';
 
-                            <a href="${child.id}/" class="text-decoration-none text-black"><div class="profile-info">
-                                <h5>${child.first_name} (ID: ${child.username})</h5>
-                                <p>생일: ${child.birthday}</p>
-                                <p>현재 잔액: ${remainingAmount.toLocaleString()}원</p>
-                            </div></a>
-                            <div class="profile-edit">
-                                <div class="delete-button" data-child-id="${child.id}">삭제</div>
-                            </div>
-                        `;
-                        container.appendChild(profileCard);
-                    });
+        // URL을 /profile/ 로 유지
+        window.history.replaceState({}, '', window.location.pathname);
+    }
 
-                    // 프로필 수정 버튼 클릭 이벤트 처리
-                    document.querySelectorAll('.edit-button').forEach(button => {
-                        button.addEventListener('click', function () {
-                            const childId = this.getAttribute('data-child-id');
-                            editChildProfile(childId);
-                        });
-                    });
+    document.addEventListener('DOMContentLoaded', function () {
+        const initialChildId = getChildIdFromUrl();
 
-                    // 삭제 버튼 클릭 이벤트 처리
-                    document.querySelectorAll('.delete-button').forEach(button => {
-                        button.addEventListener('click', function () {
-                            const childId = this.getAttribute('data-child-id');
-                            if (confirm('정말로 이 자녀 계정을 삭제하시겠습니까?')) {
-                                deleteChild(childId);
-                            }
-                        });
-                    });
-                })
-                .catch(error => console.error('Error:', error));
+        // 초기 섹션 결정
+        if (initialChildId) {
+            showReport(initialChildId);
+            // 진입 후 즉시 URL 파라미터 제거 (보안 및 미관상 /profile/ 유지)
+            window.history.replaceState({}, '', window.location.pathname);
+        } else {
+            loadDashboard();
+        }
+
+        // 브라우저 뒤로가기 대응
+        window.addEventListener('popstate', function (event) {
+            const childId = event.state ? event.state.child_id : null;
+            if (childId) {
+                showReport(childId);
+            } else {
+                showDashboard();
+            }
         });
 
-        function editChildProfile(childId) {
+        // 오늘 날짜 설정
+        const today = new Date().toISOString().split('T')[0];
+        const birthdayEl = document.getElementById('edit-birthday');
+        if (birthdayEl) birthdayEl.setAttribute('max', today);
+    });
 
-            // API에서 자녀의 현재 정보 가져오기
-            fetch(`/api/v1/accounts/children/${childId}/`, {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
+    // --- 대시보드 로직 ---
+    function loadDashboard() {
+        fetch('/api/v1/accounts/', {
+            method: 'GET',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' }
+        })
+            .then(response => {
+                if (response.status === 401) {
+                    window.location.href = '/login/';
+                    return;
                 }
+                if (!response.ok) {
+                    throw new Error('대시보드 데이터를 불러올 수 없습니다.');
+                }
+                return response.json();
             })
-                .then(response => response.json())
-                .then(data => {
+            .then(data => {
+                if (!data || !data.parent) return;
 
-                    // 수정 폼에 자녀의 현재 정보 채워넣기
-                    document.getElementById('edit-firstname').value = data.child.first_name;
-                    document.getElementById('edit-birthday').value = data.child.birthday;
-                    document.getElementById('edit-password').value = ''; // 비밀번호는 공란으로 시작
+                const profilePictureElement = document.querySelector('.profile-picture');
+                if (profilePictureElement && data.parent.images) {
+                    profilePictureElement.src = data.parent.images;
+                }
 
-                    // 수정 폼 표시
-                    document.querySelector('.edit-form-container').style.display = 'block';
+                const container = document.querySelector('.card-container');
+                if (!container) return;
+                container.innerHTML = '';
 
-                    // 저장 버튼 클릭 이벤트 처리
-                    document.getElementById('save-button').addEventListener('click', function () {
-                        const newFirstName = document.getElementById('edit-firstname').value;
-                        const newBirthday = document.getElementById('edit-birthday').value;
-                        const newPassword = document.getElementById('edit-password').value;
-                        const file = document.getElementById('edit-upload').files[0];
+                data.children.forEach((child, index) => {
+                    const profileCard = document.createElement('div');
+                    profileCard.classList.add('profile-card');
+                    const childImage = child.images || "{{ static('default_profile.png') }}";
+                    const remainingAmount = child.total || 0;
 
-                        updateChildProfile(childId, newFirstName, newBirthday, newPassword, file);
+                    profileCard.innerHTML = `
+                    <div class="profile-image">
+                        <img src="${childImage}" class="Child ${index + 1}" alt="Child ${index + 1}">
+                        <button class="edit-button" data-child-id="${child.id}">프로필 수정</button>
+                    </div>
+                    <div class="profile-info" style="cursor: pointer;" onclick="showReport(${child.id})">
+                        <h5>${child.first_name} (ID: ${child.username})</h5>
+                        <p>생일: ${child.birthday}</p>
+                        <p>현재 잔액: ${remainingAmount.toLocaleString()}원</p>
+                    </div>
+                    <div class="profile-edit">
+                        <div class="delete-button" data-child-id="${child.id}">삭제</div>
+                    </div>
+                `;
+                    container.appendChild(profileCard);
+                });
+
+                // 이벤트 바인딩
+                document.querySelectorAll('.edit-button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        editChildProfile(button.getAttribute('data-child-id'));
                     });
-                })
-                .catch(error => console.error('Error:', error));
-        }
-
-        function updateChildProfile(childId, newFirstName, newBirthday, newPassword, newFile) {
-            if (newPassword) {
-                // 8자 이상
-                if (newPassword.length < 8) {
-                    alert('비밀번호는 8자 이상이어야 합니다.');
-                    return;
-                }
-
-                // 문자와 숫자 포함 여부
-                const hasLetter = /[a-zA-Z]/.test(newPassword);
-                const hasNumber = /[0-9]/.test(newPassword);
-
-                if (!(hasLetter && hasNumber)) {
-                    alert('비밀번호는 문자와 숫자를 모두 포함해야 합니다.');
-                    return;
-                }
-
-                for (let i = 0; i < newPassword.length - 3; i++) {
-                    if (newPassword[i] === newPassword[i+1] &&
-                    newPassword[i+1] === newPassword[i+2] &&
-                    newPassword[i+2] === newPassword[i+3]) {
-                        alert('동일한 문자를 4번 이상 연속해서 사용할 수 없습니다.');
-                        return;
-                    }
-                }
-            }
-            const formData = new FormData();
-            formData.append('firstname', newFirstName);
-            formData.append('birthday', newBirthday);
-            if (newPassword) {
-                formData.append('password', newPassword);
-            }
-            if (newFile) {
-                formData.append('profile_image', newFile);
-            }
-            fetch(`/api/v1/accounts/children/${childId}/`, {
-                method: 'PUT',
-                credentials: 'include',
-                //headers: { 'Content-Type': 'application/json' },
-                body : formData
-                //body: JSON.stringify(requestData)
-            })
-                .then(response => {
-
-                    if (response.ok) {
-                        alert('프로필이 성공적으로 수정되었습니다.');
-                        window.location.reload();  // 수정 후 페이지 새로고침
-                    } else {
-                        return response.json().then(data => {
-                            alert('프로필 수정 중 오류가 발생했습니다: ' + data.error);
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('프로필 수정 중 오류가 발생했습니다.');
                 });
+                document.querySelectorAll('.delete-button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const childId = button.getAttribute('data-child-id');
+                        if (confirm('정말로 이 자녀 계정을 삭제하시겠습니까?')) {
+                            deleteChild(childId);
+                        }
+                    });
+                });
+            });
+    }
+
+    // --- 리포트 로직 ---
+    const categoryColors = {
+        '음식': '#FF9999', '음료/간식': '#FFB76F', '문구/완구': '#FDEA3B', '교통': '#7BEF7B',
+        '문화/여가': '#99CCFF', '선물': '#FF99CC', '저축': '#21FFFF', '기타': '#CC99FF'
+    };
+
+    function updateMaxExpenditureBox(category) {
+        const categoryElement = document.querySelector('.maximumconsumption');
+        if (!categoryElement) return;
+        const color = categoryColors[category] || '#000';
+        categoryElement.textContent = category;
+        categoryElement.style.color = color;
+    }
+
+    function populateMonthPicker() {
+        const monthPicker = document.getElementById('month-picker');
+        if (!monthPicker) return;
+        monthPicker.innerHTML = '';
+        for (let i = 1; i <= 12; i++) {
+            const option = document.createElement('option');
+            option.value = i.toString().padStart(2, '0');
+            option.textContent = i + '월';
+            monthPicker.appendChild(option);
+        }
+    }
+
+    function fetchAvailableMonths(childId) {
+        const yearPicker = document.getElementById('year-picker');
+        const monthPicker = document.getElementById('month-picker');
+        if (!yearPicker || !monthPicker) return;
+
+        fetch(`/api/v1/diary/${childId}/available-months/`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' }
+        })
+            .then(res => res.json())
+            .then(data => {
+                const availableMonths = data.available_months || [];
+                let availableYears = {};
+                yearPicker.innerHTML = '';
+
+                if (availableMonths.length === 0) {
+                    const currentYear = new Date().getFullYear().toString();
+                    availableYears[currentYear] = true;
+                    const option = document.createElement('option');
+                    option.value = currentYear; option.textContent = currentYear;
+                    yearPicker.appendChild(option);
+                } else {
+                    availableMonths.forEach(m => {
+                        const [year] = m.split('-');
+                        availableYears[year] = true;
+                    });
+                    Object.keys(availableYears).forEach(y => {
+                        const option = document.createElement('option');
+                        option.value = y; option.textContent = y;
+                        yearPicker.appendChild(option);
+                    });
+                }
+
+                populateMonthPicker();
+
+                const savedYear = localStorage.getItem('selectedYear');
+                const savedMonth = localStorage.getItem('selectedMonth');
+
+                if (savedYear && savedMonth) {
+                    yearPicker.value = savedYear;
+                    monthPicker.value = savedMonth;
+                    diaries_monthlysummary(childId, savedYear, savedMonth);
+                } else {
+                    const latestYear = Object.keys(availableYears).sort().pop();
+                    yearPicker.value = latestYear;
+                    const currentMonth = (new Date().getMonth() + 1).toString().padStart(2, '0');
+                    monthPicker.value = currentMonth;
+                    diaries_monthlysummary(childId, latestYear, currentMonth);
+                }
+            });
+    }
+
+    function updateProgressBar(percent) {
+        const progressBar = document.getElementById('progress-bar');
+        if (progressBar) {
+            progressBar.style.width = percent + '%';
+            progressBar.textContent = percent + '%';
+        }
+    }
+
+    let loadingInterval;
+    function startLoading() {
+        if (loadingInterval) clearInterval(loadingInterval);
+        let percent = 0;
+        updateProgressBar(0);
+        loadingInterval = setInterval(() => {
+            percent += 10;
+            if (percent >= 90) {
+                clearInterval(loadingInterval);
+            } else {
+                updateProgressBar(percent);
+            }
+        }, 300);
+    }
+
+    function diaries_monthlysummary(id, year, month) {
+        startLoading();
+        const loadingContainer = document.querySelector('.loading-container');
+        if (loadingContainer) loadingContainer.style.display = 'block';
+
+        const loadingMessage = document.querySelector('.spending-summary-red');
+        if (loadingMessage) {
+            loadingMessage.textContent = '모아모아가 열심히 분석중입니다..🔎';
+            loadingMessage.style.display = 'block';
         }
 
-        function deleteChild(childId) {
-            fetch(`/api/v1/accounts/children/${childId}/`, {
-                method: 'DELETE',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
+        ['.spending-chart', '.max-expenditure-container', '.spending-summary', '.summaryview', '.evaluation'].forEach(sel => {
+            const el = document.querySelector(sel);
+            if (el) el.style.display = 'none';
+        });
+
+        fetch(`/api/v1/diary/monthly/${id}/`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ year, month })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (loadingInterval) clearInterval(loadingInterval);
+                updateProgressBar(100);
+                setTimeout(() => {
+                    if (loadingContainer) loadingContainer.style.display = 'none';
+                }, 500);
+                if (data.message) {
+                    if (loadingMessage) loadingMessage.textContent = data.message;
+                } else if (data.summary || data.content) {
+                    if (loadingMessage) loadingMessage.style.display = 'none';
+                    ['.spending-summary', '.spending-chart', '.max-expenditure-container', '.evaluation', '.summaryview'].forEach(sel => {
+                        const el = document.querySelector(sel);
+                        if (el) el.style.display = 'block';
+                    });
+
+                    let parsedData = data.summary || JSON.parse(data.content.replace(/'/g, '"')).summary;
+
+                    document.querySelector('.totalincome').textContent = parsedData.총_수입.toLocaleString('ko-KR');
+                    document.querySelector('.totalexpenses').textContent = parsedData.총_지출.toLocaleString('ko-KR');
+                    document.querySelector('.remainingamount').textContent = parsedData.남은_금액.toLocaleString('ko-KR');
+                    updateMaxExpenditureBox(parsedData.가장_많이_지출한_카테고리);
+                    document.querySelector('.evaluationmsg').textContent = parsedData.지출_패턴_평가;
+
+                    const categoryExpenses = parsedData.카테고리별_지출;
+                    const parsedCategoryExpenses = Object.fromEntries(Object.entries(categoryExpenses).map(([k, v]) => [k, parseFloat(v)]));
+                    drawPieChart(parsedCategoryExpenses);
+                    document.querySelector('.summarymonth').textContent = month;
                 }
+            });
+    }
+
+    function loadProfileAndEncouragement(id) {
+        fetch(`/api/v1/accounts/children/${id}/`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' }
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (!data || !data.child) return;
+                const summaryNameEl = document.querySelector('.summaryname');
+                if (summaryNameEl) summaryNameEl.textContent = data.child.first_name;
+
+                // 리포트 섹션 내 현재 잔액 표시
+                const currentAmountEl = document.querySelector('#report-section .current-amount');
+                if (currentAmountEl) {
+                    const totalAmount = data.child.total || 0;
+                    currentAmountEl.textContent = totalAmount.toLocaleString('ko-KR') + '원';
+                }
+
+                const msgEl = document.querySelector('.encouragement-message');
+                if (msgEl) msgEl.textContent = data.child.encouragement || '아이에게 조언 또는 응원의 메시지를 보내보세요.';
             })
-                .then(response => {
-                    if (response.status === 204) {
-                        alert('자녀 계정이 성공적으로 삭제되었습니다.');
-                        window.location.reload(); // 페이지 새로고침으로 삭제된 자녀 목록 갱신
-                    } else {
-                        return response.json().then(data => {
-                            alert('삭제 중 오류가 발생했습니다: ' + data.error);
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('삭제 중 오류가 발생했습니다.');
-                });
-        }
-    </script>
-    <script>
+            .catch(error => console.error('프로필 로드 중 오류:', error));
+    }
+
+    // --- 기타 유틸리티 ---
+    function drawPieChart(data) {
+        const chartContainer = document.getElementById('pie-chart');
+        if (!chartContainer) return;
+        chartContainer.innerHTML = '';
+
+        const width = 60, height = 60, margin = 20;
+        const radius = Math.min(width, height) / 2 - margin;
+        const innerRadius = 30;
+
+        const svg = d3.select('#pie-chart').append('svg')
+            .attr('width', width).attr('height', height).attr('viewBox', `0 0 ${width} ${height}`)
+            .style('max-width', '90%').append('g').attr('transform', `translate(${width / 2}, ${height / 2})`);
+
+        const color = d3.scaleOrdinal().domain(Object.keys(categoryColors)).range(Object.values(categoryColors));
+        const pie = d3.pie().value(d => d[1]);
+        const data_ready = pie(Object.entries(data));
+        const total = Object.values(data).reduce((a, b) => a + b, 0);
+
+        svg.selectAll('path').data(data_ready).join('path')
+            .attr('d', d3.arc().innerRadius(innerRadius).outerRadius(radius))
+            .attr('fill', d => color(d.data[0])).attr('stroke', 'white').style('stroke-width', '2px').style('opacity', 0.7);
+    }
+
+    // 수정/삭제 함수
+    function editChildProfile(childId) {
+        fetch(`/api/v1/accounts/children/${childId}/`, { method: 'GET', credentials: 'include' })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('edit-firstname').value = data.child.first_name;
+                document.getElementById('edit-birthday').value = data.child.birthday;
+                document.querySelector('.edit-form-container').style.display = 'block';
+
+                document.getElementById('save-button').onclick = () => {
+                    const formData = new FormData();
+                    formData.append('firstname', document.getElementById('edit-firstname').value);
+                    formData.append('birthday', document.getElementById('edit-birthday').value);
+                    const pwd = document.getElementById('edit-password').value;
+                    if (pwd) formData.append('password', pwd);
+                    const file = document.getElementById('edit-upload').files[0];
+                    if (file) formData.append('profile_image', file);
+
+                    fetch(`/api/v1/accounts/children/${childId}/`, { method: 'PUT', credentials: 'include', body: formData })
+                        .then(res => { if (res.ok) window.location.reload(); });
+                };
+            });
+    }
+
+    function deleteChild(childId) {
+        fetch(`/api/v1/accounts/children/${childId}/`, { method: 'DELETE', credentials: 'include' })
+            .then(res => { if (res.status === 204) window.location.reload(); });
+    }
+
     function showFileName() {
         const input = document.getElementById('edit-upload');
-        const fileName = input.files[0]?.name || " ";
-        document.getElementById('file-name').textContent = fileName;
-        }
-    </script>
+        document.getElementById('file-name').textContent = input.files[0]?.name || " ";
+    }
+
+    // 이벤트 바인딩 (리포트 내 아이 정보 수정)
+    const editIcon2 = document.getElementById('edit-icon');
+    if (editIcon2) {
+        editIcon2.onclick = () => {
+            const div = document.getElementById('encouragement-input');
+            div.style.display = div.style.display === 'none' ? 'block' : 'none';
+        };
+    }
+    const saveEncBtn = document.getElementById('save-encouragement');
+    if (saveEncBtn) {
+        saveEncBtn.onclick = () => {
+            const encouragement = document.getElementById('edit-encouragement').value;
+            const formData = new FormData();
+            formData.append('encouragement', encouragement);
+            fetch(`/api/v1/accounts/children/${currentChildId}/`, { method: 'PUT', credentials: 'include', body: formData })
+                .then(res => {
+                    if (res.ok) {
+                        document.querySelector('.encouragement-message').textContent = encouragement;
+                        document.getElementById('encouragement-input').style.display = 'none';
+                    }
+                });
+        };
+    }
+
+    // 연도/월 선택 변경 이벤트
+    const yp = document.getElementById('year-picker');
+    const mp = document.getElementById('month-picker');
+    if (yp && mp) {
+        [yp, mp].forEach(el => el.onchange = () => {
+            localStorage.setItem('selectedYear', yp.value);
+            localStorage.setItem('selectedMonth', mp.value);
+            diaries_monthlysummary(currentChildId, yp.value, mp.value);
+        });
+    }
+</script>
 {% endblock %}

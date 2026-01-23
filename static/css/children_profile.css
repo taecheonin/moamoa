@@ -1,10 +1,11 @@
-
 #child-greeting {
     margin: 10px;
     font-family: 'EliceDigitalBaeum-Bd', sans-serif;
     font-size: 18px;
 }
-.encouragement, .spending-log {
+
+.encouragement,
+.spending-log {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -15,9 +16,9 @@
 
 .profile-image {
     margin-top: 30px;
-    border-radius: 15px; 
-    width: 150px; 
-    height: 150px; 
+    border-radius: 15px;
+    width: 150px;
+    height: 150px;
     object-fit: cover;
 }
 
@@ -48,31 +49,37 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: -40px; /* 버튼이 살짝 떠 있도록 설정 */
+    margin-top: -40px;
+    /* 버튼이 살짝 떠 있도록 설정 */
 }
 
 
 /* 테이블 배경색 설정 */
 table {
-    background-color: #fcf5e7 !important; 
-    border-radius: 10px; 
+    background-color: #fcf5e7 !important;
+    border-radius: 10px;
 }
 
-th, td {
+th,
+td {
     background-color: #fdf7e8 !important;
     padding: 10px;
     border: 1px solid #fdf7e8;
 }
 
 /* #app 높이 설정 */
+/* #app { position: relative; min-height: 100vh; padding-bottom: 60px; } */
 #app {
     position: relative;
     min-height: 100vh;
-    padding-bottom: 60px; /* 내비게이션 공간 확보 */
 }
+
 .expense {
-    color: rgb(255, 124, 124) !important;  /* 지출일 경우 빨간색 */
+    color: rgb(255, 124, 124) !important;
+    /* 지출일 경우 빨간색 */
 }
+
 .income {
-    color: rgb(48, 152, 255) !important; /* 수입일 경우 파란색 */
+    color: rgb(48, 152, 255) !important;
+    /* 수입일 경우 파란색 */
 }

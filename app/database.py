@@ -7,16 +7,21 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from .config import settings
 
-# SQLite 연결 설정 (check_same_thread=False는 FastAPI 비동기 처리를 위해 필요)
+# 데이터베이스 연결 설정
 SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
 
+# MariaDB/MySQL의 경우 pool_pre_ping=True 설정을 권장합니다.
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL, 
         connect_args={"check_same_thread": False}
     )
 else:
-    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        pool_pre_ping=True,
+        pool_recycle=3600,
+    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -37,5 +42,5 @@ def get_db():
 
 def init_db():
     """데이터베이스 테이블 생성"""
-    from .models import User, FinanceDiary, MonthlySummary  # noqa
+    from .models import User, FinanceDiary, MonthlySummary, KakaoChat, KakaoChatMember, KakaoUtterance  # noqa
     Base.metadata.create_all(bind=engine)

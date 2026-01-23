@@ -66,7 +66,6 @@ async def process_chatbot(
     
     # 챗봇 응답 받기
     response = chat_with_bot(user_input, child_pk)
-    print(response)
     
     # JSON 응답 처리 (1 또는 2 입력)
     if "json" in response.lower():
@@ -278,9 +277,9 @@ async def get_available_months(
     """키즈 프로필 콤보박스용 사용 가능한 월 조회"""
     from sqlalchemy import distinct, extract
     
-    # 해당 자녀의 기입장이 있는 월 조회
+    # 해당 자녀의 기입장이 있는 월 조회 (MySQL DATE_FORMAT 사용)
     results = db.query(
-        distinct(func.strftime('%Y-%m', FinanceDiary.today))
+        distinct(func.date_format(FinanceDiary.today, '%Y-%m'))
     ).filter(
         FinanceDiary.child_id == child_pk
     ).all()
@@ -393,7 +392,8 @@ def _create_summary_content(db: Session, child: User, year: int, month: int) -> 
         return {
             "username": child_name,
             "age": child_age,
-            "message": f"{child_name}님의 {year}년 {month}월 용돈기입장 기록이 없습니다."
+            # "message": f"{child_name}님의 {year}년 {month}월 용돈기입장 기록이 없습니다."
+            "message": f"{year}년 {month}월 용돈기입장 기록이 없습니다."
         }
     
     # 총 수입/지출 계산
