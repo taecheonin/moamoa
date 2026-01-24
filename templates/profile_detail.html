@@ -321,7 +321,22 @@
                 redMsg.style.display = 'block';
               }
             } else if (data.summary || data.content) {
-              const redMsg = document.querySelector('.spending-summary-red');
+              let parsedData = data.summary || JSON.parse(data.content.replace(/'/g, '"')).summary;
+
+              if (Object.keys(parsedData.카테고리별_지출).length === 0) {
+                // 지출 내역이 없는 경우
+                if (redMsg) {
+                  redMsg.textContent = '이번 달은 지출 내역이 없어요! 💸\n자녀의 용돈기입장이 작성되면 분석 리포트가 생성됩니다.';
+                  redMsg.style.display = 'block';
+                }
+                const sectionsToHide = ['.spending-summary', '.spending-chart', '.max-expenditure-container', '.evaluation', '.summaryview'];
+                sectionsToHide.forEach(sel => {
+                  const el = document.querySelector(sel);
+                  if (el) el.style.display = 'none';
+                });
+                return;
+              }
+
               if (redMsg) redMsg.style.display = 'none';
 
               const summaryBox = document.querySelector('.spending-summary');
@@ -340,14 +355,6 @@
               if (viewTitle) viewTitle.style.display = 'block';
 
               updateProgressBar(100);
-
-              let parsedData;
-              if (data.summary) {
-                parsedData = data.summary;
-              } else {
-                let jsonString = data.content.replace(/'/g, '"');
-                parsedData = JSON.parse(jsonString).summary;
-              }
 
               // 요약 내용 업데이트
               const inc = document.querySelector('.totalincome');

@@ -438,13 +438,26 @@
                 if (data.message) {
                     if (loadingMessage) loadingMessage.textContent = data.message;
                 } else if (data.summary || data.content) {
+                    let parsedData = data.summary || JSON.parse(data.content.replace(/'/g, '"')).summary;
+
+                    if (Object.keys(parsedData.카테고리별_지출).length === 0) {
+                        // 지출 내역이 없는 경우
+                        if (loadingMessage) {
+                            loadingMessage.textContent = '이번 달은 지출 내역이 없어요! 💸\n자녀의 용돈기입장이 작성되면 분석 리포트가 생성됩니다.';
+                            loadingMessage.style.display = 'block';
+                        }
+                        ['.spending-summary', '.spending-chart', '.max-expenditure-container', '.evaluation', '.summaryview'].forEach(sel => {
+                            const el = document.querySelector(sel);
+                            if (el) el.style.display = 'none';
+                        });
+                        return;
+                    }
+
                     if (loadingMessage) loadingMessage.style.display = 'none';
                     ['.spending-summary', '.spending-chart', '.max-expenditure-container', '.evaluation', '.summaryview'].forEach(sel => {
                         const el = document.querySelector(sel);
                         if (el) el.style.display = 'block';
                     });
-
-                    let parsedData = data.summary || JSON.parse(data.content.replace(/'/g, '"')).summary;
 
                     document.querySelector('.totalincome').textContent = parsedData.총_수입.toLocaleString('ko-KR');
                     document.querySelector('.totalexpenses').textContent = parsedData.총_지출.toLocaleString('ko-KR');

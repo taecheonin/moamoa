@@ -655,15 +655,27 @@ async def kakao_message_log(
                 output_cards = []
                 mentions_dict = {}
                 
-                for i, cm in enumerate(children_members[:3]):  # 카카오 응답 제한: 최대 3개의 output
+                # 유효한(기록이 있는) 자녀 데이터 필터링
+                valid_children_data = []
+                for cm in children_members:
+                    c_user = db.query(User).filter(User.username == cm.user_key).first()
+                    if c_user:
+                        # 한 건이라도 있는지 확인
+                        if db.query(FinanceDiary).filter(FinanceDiary.child_id == c_user.id).first():
+                            valid_children_data.append((cm, c_user))
+                
+                if not valid_children_data:
+                    return {
+                        "version": "2.0",
+                        "template": {
+                            "outputs": [{"simpleText": {"text": "/용돈기입장 자산내용 입력해주세요"}}]
+                        }
+                    }
+                
+                for i, (cm, child_user) in enumerate(valid_children_data[:3]):
                     mention_id = f"child_{i+1}"
                     mentions_dict[mention_id] = {"type": "botUserKey", "id": cm.user_key}
                     
-                    # 해당 자녀의 User 정보 조회
-                    child_user = db.query(User).filter(User.username == cm.user_key).first()
-                    if not child_user:
-                        continue
-
                     # 부모-자녀 관계 연결 (누락 방지)
                     if child_user.parents_id != parent_user.id:
                         child_user.parents_id = parent_user.id
@@ -672,7 +684,7 @@ async def kakao_message_log(
                     child_id = child_user.id
 
                     # 안내 메시지 (자녀가 1명일 때만 혹은 카드 제한에 맞춰 노출)
-                    if len(children_members) == 1:
+                    if len(valid_children_data) == 1:
                         output_cards.append({
                             "simpleText": {
                                 "text": f"{{{{#mentions.{mention_id}}}}} 자녀의 {year_month_str} 용돈 관리 리포트가 준비되었습니다! 💌"
