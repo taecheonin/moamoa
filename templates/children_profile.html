@@ -18,46 +18,6 @@
         font-size: 0.8em;
         margin-right: 5px;
     }
-
-    /* 뱃지 스타일 추가 */
-    .badge {
-        display: inline-block;
-        padding: 0.3em 0.5em;
-        font-size: 0.75em;
-        font-weight: 700;
-        line-height: 1;
-        text-align: center;
-        white-space: nowrap;
-        vertical-align: baseline;
-        border-radius: 0.25rem;
-        margin-right: 4px;
-        color: #fff;
-    }
-
-    .badge-income {
-        background-color: #3098ff;
-    }
-
-    /*, 파란색 계열 */
-    .badge-expense {
-        background-color: #ff7c7c;
-    }
-
-    /* 빨간색 계열 */
-
-    .text-income {
-        color: #3098ff !important;
-        font-weight: bold;
-    }
-
-    .text-expense {
-        color: #ff7c7c !important;
-        font-weight: bold;
-    }
-
-    .text-danger {
-        color: #dc3545 !important;
-    }
 </style>
 
 <div class="container">
@@ -82,7 +42,7 @@
                     <th>날짜</th>
                     <th>내용</th>
                     <th>금액</th>
-                    <th>잔액</th>
+                    <th>남은 돈</th>
                     <th></th>
                 </tr>
             </thead>
@@ -259,36 +219,28 @@
 
 
             itemsToShow.forEach(entry => {
-                const isExpense = entry.transaction_type === '지출';
-                const sign = isExpense ? '-' : '+';
-                const formattedAmount = `${sign} ${parseInt(entry.amount).toLocaleString()}원`;
-
-                // 스타일 클래스 및 뱃지 설정
-                const amountClass = isExpense ? 'text-expense' : 'text-income';
-                const badgeClass = isExpense ? 'badge-expense' : 'badge-income';
-                const typeLabel = isExpense ? '지출' : '수입';
-                const typeBadge = `<span class="badge ${badgeClass}">${typeLabel}</span>`;
+                const sign = entry.transaction_type === '지출' ? '-' : '+';  // 지출 또는 수입에 따라 부호 결정
+                const formattedAmount = `${sign} ${parseInt(entry.amount).toLocaleString()}원`;  // 금액 포맷
+                const amountClass = entry.transaction_type === '지출' ? 'expense' : 'income';  // 지출/수입에 따른 클래스 설정
 
                 // 날짜를 mm.dd. 형식으로 변환
                 const [year, month, day] = entry.today.split('-');
                 const formattedDate = `${month}.${day}`;
 
-                const remainingVal = parseInt(entry.remaining);
-                const remainingAmount = remainingVal.toLocaleString();
-                const remainingClass = remainingVal < 0 ? 'text-danger' : '';
+                const remainingAmount = parseInt(entry.remaining).toLocaleString();  // 남은 금액 포맷
 
-                // 테이블 행 추가 (내용 앞에 뱃지 추가)
+                // 테이블 행 추가
                 const row = `
             <tr data-entry-id="${entry.id}">
                 <td>${formattedDate}</td>
-                <td class="text-start">${typeBadge} ${entry.diary_detail}</td>
+                <td>${entry.diary_detail}</td>
                 <td class="${amountClass}">${formattedAmount}</td>
-                <td class="${remainingClass}">${remainingAmount}원</td>
+                <td>${remainingAmount}원</td>
                 <td style="display: ${year === currentYear && month === currentMonth ? 'table-cell' : 'none'};">
                     <span class="delete-btn">X</span>
                 </td>
             </tr>`;
-                diaryTableBody.insertAdjacentHTML('beforeend', row);
+                diaryTableBody.insertAdjacentHTML('beforeend', row);  // 행을 테이블에 추가
             });
 
             // "더보기"/"닫기" 버튼 설정
