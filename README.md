@@ -5,7 +5,7 @@
 - **내일배움캠프 최종프로젝트 최우수상 수상**
 
 - **SDGs 홈페이지 : [https://sdgs.colcomm.net/](https://sdgs.colcomm.net/)**
-![SDG 4](https://sdgs.colcomm.net/badge/sdg/4.svg?score=75) 
+[SDG 4](https://sdgs.colcomm.net/badge/sdg/4.svg?score=75) 
 ![SDG 3](https://sdgs.colcomm.net/badge/sdg/3.svg) 
 ![SDG 8](https://sdgs.colcomm.net/badge/sdg/8.svg)
 
