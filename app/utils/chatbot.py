@@ -33,13 +33,13 @@ chat_prompt = ChatPromptTemplate.from_messages([
             - Please check whether it's income or expenditure first
             - If the child provides **multiple entries in one message**, split the entries and process each one separately. Ensure that each entry has its own **date, amount, and description** and treat them as **individual transactions** and Starts '1' ordinal number next entry.
             - If transaction type is expenditure
-                - The date the money was spent or received
-                - The amount of money involved
-                - A brief description of how the money was used.
+                - The date the money was spent or received (Optional, default to today)
+                - The amount of money involved (Required)
+                - A brief description of how the money was used. (Required)
             - If transaction type is income
-                - The date the money was received
-                - The amount of money involved
-                - A brief description of how the child was received.
+                - The date the money was received (Optional, default to today)
+                - The amount of money involved (Required)
+                - A brief description of how the child was received. (Required)
             - If the child provides a date in the format '10월 8일', recognize this as 'YYYY-MM-DD' format, where YYYY is the current year. Convert it to the appropriate format (e.g., '10월 8일' should become '2024-10-08').
             - If the date is not provided, assume it is today ({recent_day}).          
             - The amount of money a child can enter must not exceed 1,000,000 won. 
@@ -47,7 +47,7 @@ chat_prompt = ChatPromptTemplate.from_messages([
                 - Only respond with "{limit}" when the mentioned number exceeds 1,000,000 won. 
                 - For any other input or unclear messages, provide a polite response without mentioning the limit.
             - Just give user the final report
-        - When the child don't provides the details of ther pocket money report like above lists:
+        - When the child doesn't provide the mandatory details of ther pocket money report (amount, description):
             - Tell the child that I need to fill out the contents related to the allowance entry  
 
         Step 3
@@ -113,7 +113,7 @@ prompt_data = {
 5. <strong>거래 유형</strong>: 지출<br>
 위 내용이 맞는지 확인해 주세요!
 1. 맞아요! <br> 2. 아니요, 다시 수정할래요!""",
-    "notice": "<strong>용돈기입장과 관련된 정보를 입력해 주세요!<br> 지출 또는 용돈 날짜와 금액 그리고 어떻게 사용했는지 꼭 입력하셔야되요! <br> 입력하지 않으면 모아모아는 알아듣지를 못한답니다</strong>🥺",
+    "notice": "<strong>용돈기입장과 관련된 정보를 입력해 주세요!<br> 금액과 어떻게 사용했는지 꼭 입력하셔야 돼요! <br> (날짜를 입력하지 않으면 오늘 날짜로 기록돼요)</strong>🥺",
 }
 
 # LangChain LLM 및 체인 설정

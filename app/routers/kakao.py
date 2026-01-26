@@ -40,11 +40,17 @@ async def process_callback(callback_url: str, utterance: str, user_id: str, para
     cat_match = re.search(r"4\.\s*(?:<strong>)?분류(?:</strong>)?:?\s*(.*?)(?:\s*<br>|\n|$)", response_text)
     type_match = re.search(r"5\.\s*(?:<strong>)?거래 유형(?:</strong>)?:?\s*(.*?)(?:\s*<br>|\n|$)", response_text)
 
-    if date_match and amount_match:
+    if amount_match:
+        # 날짜 추출 실패 시 오늘 날짜 사용
+        if date_match:
+            date_str = date_match.group(1).strip().replace("<strong>","").replace("</strong>","")
+        else:
+            date_str = datetime.now().strftime("%Y-%m-%d")
+
         # 데이터가 추출되면 itemCard 형태로 구성
         usage_desc = desc_match.group(1).strip().replace("<strong>","").replace("</strong>","") if desc_match else ""
         item_list = [
-            {"title": "날짜", "description": date_match.group(1).strip().replace("<strong>","").replace("</strong>","")},
+            {"title": "날짜", "description": date_str},
             {"title": "금액", "description": amount_match.group(1).strip().replace("<strong>","").replace("</strong>","")},
             {"title": "분류", "description": cat_match.group(1).strip().replace("<strong>","").replace("</strong>","") if cat_match else "-"},
             {"title": "거래 유형", "description": type_match.group(1).strip().replace("<strong>","").replace("</strong>","") if type_match else "-"}
@@ -77,7 +83,7 @@ async def process_callback(callback_url: str, utterance: str, user_id: str, para
                                     "sync_id": (sync_id := str(uuid.uuid4())),
                                     "diary_data": {
                                         "diary_detail": usage_desc,
-                                        "today": date_match.group(1).strip().replace("<strong>","").replace("</strong>","") if date_match else "",
+                                        "today": date_str,
                                         "category": cat_match.group(1).strip().replace("<strong>","").replace("</strong>","") if cat_match else "",
                                         "transaction_type": type_match.group(1).strip().replace("<strong>","").replace("</strong>","") if type_match else "",
                                         "amount": amount_match.group(1).strip().replace("<strong>","").replace("</strong>","").replace("원", "").replace(",", "") if amount_match else "0"
