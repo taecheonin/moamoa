@@ -33,11 +33,11 @@ chat_prompt = ChatPromptTemplate.from_messages([
             - Please check whether it's income or expenditure first
             - If the child provides **multiple entries in one message**, split the entries and process each one separately. Ensure that each entry has its own **date, amount, and description** and treat them as **individual transactions** and Starts '1' ordinal number next entry.
             - If transaction type is expenditure
-                - The date the money was spent or received (Optional, default to today)
+                - The date the money was spent or received. **If the user does not provide a date, YOU MUST automatically set it to {recent_day}. DO NOT ask for the date.**
                 - The amount of money involved (Required)
                 - A brief description of how the money was used. (Required)
             - If transaction type is income
-                - The date the money was received (Optional, default to today)
+                - The date the money was received. **If the user does not provide a date, YOU MUST automatically set it to {recent_day}. DO NOT ask for the date.**
                 - The amount of money involved (Required)
                 - A brief description of how the child was received. (Required)
             - If the child provides a date in the format '10월 8일', recognize this as 'YYYY-MM-DD' format, where YYYY is the current year. Convert it to the appropriate format (e.g., '10월 8일' should become '2024-10-08').

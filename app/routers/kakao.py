@@ -148,6 +148,8 @@ async def kakao_message_log(
         
         # JSON 데이터 수신
         body = await request.json()
+
+        print(body)
         
         # 특정 블록 ID 체크 및 채팅방 ID 저장
         user_request = body.get("userRequest", {})
@@ -208,6 +210,7 @@ async def kakao_message_log(
                 headers = { "Authorization": f"KakaoAK {settings.REST_API_KEY}", "Content-Type": "application/json; charset=utf-8" }
 
                 api_response = requests.get(url, headers=headers)
+                
 
                 if api_response.status_code == 200:
                     # 채팅방 정보 저장 및 ID 가져오기
@@ -374,14 +377,15 @@ async def kakao_message_log(
                     KakaoChatMember.user_key == user_id
                 ).first()
                 
-                # 부모(0)인 경우 사용 방지
-                if not current_user or current_user.user_type == 0:
-                    return {
-                        "version": "2.0",
-                        "template": {
-                            "outputs": [{"simpleText": {"text": "자녀만 사용할 수 있는 메뉴입니다."}}]
-                        }
-                    }
+                # current_user가 None이어도(채팅방 멤버 미등록) 사용 가능하도록 처리할 수도 있으나,
+                # 여기서는 '부모(0)인 경우 사용 방지' 로직 자체를 제거하여 부모도 통과되게 함.
+                # if not current_user or current_user.user_type == 0:
+                #     return {
+                #         "version": "2.0",
+                #         "template": {
+                #             "outputs": [{"simpleText": {"text": "자녀만 사용할 수 있는 메뉴입니다."}}]
+                #         }
+                #     }
             
             if callback_url:
                 # 백그라운드 작업 추가
@@ -597,14 +601,9 @@ async def kakao_message_log(
                     KakaoChatMember.user_key == user_id
                 ).first()
 
-                # 자녀인 경우 접근 제한
-                if current_member and current_member.user_type == 1:
-                    return {
-                        "version": "2.0",
-                        "template": {
-                            "outputs": [{"simpleText": {"text": "부모님만 확인할 수 있는 메뉴입니다. 😊"}}]
-                        }
-                    }
+                # 자녀인 경우 접근 제한 해제
+                # if current_member and current_member.user_type == 1: ...
+
 
                 # 멘션된 자녀 추출 (있는 경우 해당 자녀만 표시)
                 action_params = action.get("params", {})
@@ -682,10 +681,11 @@ async def kakao_message_log(
                     mention_id = f"child_{i+1}"
                     mentions_dict[mention_id] = {"type": "botUserKey", "id": cm.user_key}
                     
-                    # 부모-자녀 관계 연결 (누락 방지)
-                    if child_user.parents_id != parent_user.id:
-                        child_user.parents_id = parent_user.id
-                        db.commit()
+                    # 부모-자녀 관계 연결 (누락 방지) - 부모인 경우에만 실행
+                    if current_member and current_member.user_type == 0:
+                        if child_user.parents_id != parent_user.id:
+                            child_user.parents_id = parent_user.id
+                            db.commit()
 
                     child_id = child_user.id
 

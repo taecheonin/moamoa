@@ -262,6 +262,33 @@
                 if (!container) return;
                 container.innerHTML = '';
 
+                // [추가] 내 가계부 (본인) 카드
+                const myCard = document.createElement('div');
+                myCard.classList.add('profile-card');
+                myCard.style.border = "2px solid #FFCD00";
+                myCard.style.backgroundColor = "#FFFEF0";
+
+                // 이미지 경로 처리 (간단히 /media/ 붙임, 단 http로 시작하면 그대로)
+                let myImg = "{{ static('images/default_profile.png') }}";
+                if (data.parent.images) {
+                    if (data.parent.images.startsWith('http')) myImg = data.parent.images;
+                    else myImg = '/media/' + data.parent.images;
+                }
+
+                myCard.innerHTML = `
+                    <div class="profile-image">
+                        <img src="${myImg}" alt="내 프로필">
+                    </div>
+                    <div class="profile-info" style="cursor: pointer;" onclick="showReport(${data.parent.id})">
+                        <h5>내 가계부</h5>
+                        <p>${data.parent.first_name} 님</p>
+                    </div>
+                    <div class="profile-edit">
+                         <button class="edit-button" style="background-color:#FFCD00; color:#333; font-weight:bold;" onclick="event.stopPropagation(); window.location.href='/child_profile/'">작성하기</button>
+                    </div>
+                `;
+                container.appendChild(myCard);
+
                 data.children.forEach((child, index) => {
                     const profileCard = document.createElement('div');
                     profileCard.classList.add('profile-card');
@@ -443,7 +470,7 @@
                     if (Object.keys(parsedData.카테고리별_지출).length === 0) {
                         // 지출 내역이 없는 경우
                         if (loadingMessage) {
-                            loadingMessage.textContent = '이번 달은 지출 내역이 없어요! 💸\n자녀의 용돈기입장이 작성되면 분석 리포트가 생성됩니다.';
+                            loadingMessage.textContent = '이번 달은 지출 내역이 없어요! 💸\n가계부(용돈기입장) 기록이 작성되면 분석 리포트가 생성됩니다.';
                             loadingMessage.style.display = 'block';
                         }
                         ['.spending-summary', '.spending-chart', '.max-expenditure-container', '.evaluation', '.summaryview'].forEach(sel => {

@@ -13,6 +13,7 @@
     <input type="hidden" id="userId" value="{{ user.id }}">
     <input type="hidden" id="username" value="{{ user.first_name }}">
     <input type="hidden" id="userProfileImage" value="{{ user_image }}">
+    <input type="hidden" id="isChild" value="{% if user.parents_id %}true{% else %}false{% endif %}">
     <div class="input-group">
       <!-- <button id="voice-button" class="voice-button">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -54,7 +55,7 @@
     const textArea = document.createElement('textarea');
     textArea.innerHTML = text;
     return textArea.value;
-}
+  }
 
   function formatTimestamp(timestamp) {
     const date = new Date(timestamp);
@@ -83,33 +84,36 @@
       })
       .then(data => {
         chatHistory.innerHTML = '';
-  
+
         if (data && Array.isArray(data.response)) {
           data.response.forEach(message => {
             const messageContainer = document.createElement('div');
             messageContainer.classList.add('message-container');
             messageContainer.classList.add(message.type === 'USER' ? 'chat-right' : 'chat-left');
-  
+
             const usernameElement = document.createElement('div');
             usernameElement.classList.add('chat-username');
-  
+
             // 프로필 이미지 추가 부분
             const profileImage = document.createElement('img');
             profileImage.src = message.user_profile_image || message.ai_profile_image; // 기본 이미지 설정
             profileImage.alt = 'Profile';
             profileImage.classList.add('profile-image'); // CSS로 동그랗게 만들기 위해 클래스 추가
-  
+
             // 이미지와 이름을 함께 추가
             usernameElement.appendChild(profileImage);
             usernameElement.appendChild(document.createTextNode(message.type === 'USER' ? message.username : message.ai_name));
-  
+
             const messageElement = document.createElement('div');
             messageElement.classList.add('chat-bubble');
-  
+
             // 메시지 내용 처리
             let decodedContent = decodeHTMLEntities(message.content);
             const jsonBlockRegex = /```json[\s\S]*?```/g;
-            decodedContent = decodedContent.replace(jsonBlockRegex, '용돈기입장에 성공적으로 저장되었어요!😀');
+            // [수정] 역할에 따른 완료 메시지
+            const isChild = document.getElementById('isChild').value === 'true';
+            const successMsg = isChild ? '용돈기입장에 성공적으로 저장되었어요!😀' : '가계부에 성공적으로 저장되었어요!😀';
+            decodedContent = decodedContent.replace(jsonBlockRegex, successMsg);
 
 
             let formattedContent = decodedContent.trim();
@@ -124,25 +128,25 @@
                 .replace(/\"/g, "")
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                 .trim();
-  
+
               const sanitizeConfig = {
                 ALLOWED_TAGS: ['br', 'strong'],
                 KEEP_CONTENT: true
               };
-  
+
               const sanitizedContent = DOMPurify.sanitize(formattedContent, sanitizeConfig);
-  
+
               messageElement.innerHTML = sanitizedContent;
             }
-  
-              const timestampElement = document.createElement('div');
-              timestampElement.classList.add('timestamp');
-              timestampElement.textContent = formatTimestamp(message.timestamp);
-  
-              messageContainer.appendChild(usernameElement);
-              messageContainer.appendChild(messageElement);
-              messageContainer.appendChild(timestampElement);
-              chatHistory.appendChild(messageContainer);
+
+            const timestampElement = document.createElement('div');
+            timestampElement.classList.add('timestamp');
+            timestampElement.textContent = formatTimestamp(message.timestamp);
+
+            messageContainer.appendChild(usernameElement);
+            messageContainer.appendChild(messageElement);
+            messageContainer.appendChild(timestampElement);
+            chatHistory.appendChild(messageContainer);
           });
           chatHistory.scrollTop = chatHistory.scrollHeight;
         } else {
@@ -157,70 +161,70 @@
   function sendMessage() {
     const message = chatInput.value.trim();
     if (message) {
-        const childPk = getChildPkFromUrl();
-        const username = document.getElementById('username').value; // 사용자 이름 가져오기
-        const userProfileImage = document.getElementById('userProfileImage').value;
-        // 입력창 비활성화 및 로딩 상태 표시
-        chatInput.disabled = true;  
-        chatInput.value = '';  
-        chatInput.placeholder = '모아모아가 생각 중입니다...🤔';  
+      const childPk = getChildPkFromUrl();
+      const username = document.getElementById('username').value; // 사용자 이름 가져오기
+      const userProfileImage = document.getElementById('userProfileImage').value;
+      // 입력창 비활성화 및 로딩 상태 표시
+      chatInput.disabled = true;
+      chatInput.value = '';
+      chatInput.placeholder = '모아모아가 생각 중입니다...🤔';
 
-        // 유저 메시지를 먼저 화면에 추가
-        const messageContainer = document.createElement('div');
-        messageContainer.classList.add('message-container', 'chat-right');
-        
-        const usernameElement = document.createElement('div');
-        usernameElement.classList.add('chat-username');
-        
-        const profileImage = document.createElement('img');
-        profileImage.src = userProfileImage; // 사용자 프로필 이미지 URL
-        profileImage.alt = 'Profile';
-        profileImage.classList.add('profile-image');
-        
-        usernameElement.appendChild(profileImage);
-        usernameElement.appendChild(document.createTextNode(username)); // 사용자 이름 추가
-        
-        const messageElement = document.createElement('div');
-        messageElement.classList.add('chat-bubble');
-        messageElement.innerHTML = message.replace(/\n/g, '<br>'); // 줄바꿈 처리
+      // 유저 메시지를 먼저 화면에 추가
+      const messageContainer = document.createElement('div');
+      messageContainer.classList.add('message-container', 'chat-right');
 
-        const timestampElement = document.createElement('div');
-        timestampElement.classList.add('timestamp');
-        timestampElement.textContent = formatTimestamp(new Date()); // 현재 시간 표시
+      const usernameElement = document.createElement('div');
+      usernameElement.classList.add('chat-username');
 
-        messageContainer.appendChild(usernameElement);
-        messageContainer.appendChild(messageElement);
-        messageContainer.appendChild(timestampElement);
-        chatHistory.appendChild(messageContainer);
-        chatHistory.scrollTop = chatHistory.scrollHeight; // 스크롤을 아래로 이동
+      const profileImage = document.createElement('img');
+      profileImage.src = userProfileImage; // 사용자 프로필 이미지 URL
+      profileImage.alt = 'Profile';
+      profileImage.classList.add('profile-image');
 
-        // 서버에 메시지 전송
-        fetch('/api/v1/diary/chat/', {
-            credentials: 'include',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ message: message, child_pk: childPk })
-        })
+      usernameElement.appendChild(profileImage);
+      usernameElement.appendChild(document.createTextNode(username)); // 사용자 이름 추가
+
+      const messageElement = document.createElement('div');
+      messageElement.classList.add('chat-bubble');
+      messageElement.innerHTML = message.replace(/\n/g, '<br>'); // 줄바꿈 처리
+
+      const timestampElement = document.createElement('div');
+      timestampElement.classList.add('timestamp');
+      timestampElement.textContent = formatTimestamp(new Date()); // 현재 시간 표시
+
+      messageContainer.appendChild(usernameElement);
+      messageContainer.appendChild(messageElement);
+      messageContainer.appendChild(timestampElement);
+      chatHistory.appendChild(messageContainer);
+      chatHistory.scrollTop = chatHistory.scrollHeight; // 스크롤을 아래로 이동
+
+      // 서버에 메시지 전송
+      fetch('/api/v1/diary/chat/', {
+        credentials: 'include',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: message, child_pk: childPk })
+      })
         .then(response => response.json())
         .then(data => {
-            loadChatHistory(); // AI의 응답과 기존 기록 로드
-            
-            // 입력창 활성화 및 원래 상태로 복원
-            chatInput.disabled = false;  
-            chatInput.placeholder = '메시지를 입력하세요...';  
-            chatInput.focus();  
+          loadChatHistory(); // AI의 응답과 기존 기록 로드
+
+          // 입력창 활성화 및 원래 상태로 복원
+          chatInput.disabled = false;
+          chatInput.placeholder = '메시지를 입력하세요...';
+          chatInput.focus();
         })
         .catch(error => {
-            console.error('Error:', error);
-            
-            // 오류가 발생해도 입력창을 다시 활성화
-            chatInput.disabled = false;
-            chatInput.placeholder = '메시지를 입력하세요...';  
+          console.error('Error:', error);
+
+          // 오류가 발생해도 입력창을 다시 활성화
+          chatInput.disabled = false;
+          chatInput.placeholder = '메시지를 입력하세요...';
         });
     }
-}
+  }
 
 
   document.addEventListener('DOMContentLoaded', function () {

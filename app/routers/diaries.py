@@ -304,10 +304,15 @@ async def create_monthly_summary(
     parent = current_user
     
     # 자녀 조회
-    child = db.query(User).filter(
-        User.id == child_id,
-        User.parents_id == parent.id
-    ).first()
+    if child_id == parent.id:
+        # 본인(부모/독립 사용자)인 경우
+        child = db.query(User).filter(User.id == child_id).first()
+    else:
+        # 자녀인 경우
+        child = db.query(User).filter(
+            User.id == child_id,
+            User.parents_id == parent.id
+        ).first()
     
     if not child:
         raise HTTPException(
@@ -412,24 +417,33 @@ def _create_summary_content(db: Session, child: User, year: int, month: int) -> 
     # OpenAI 요약 생성
     client = OpenAI(api_key=settings.OPENAI_API_KEY)
     
+    is_adult = child.parents_id is None
+    target_audience = "adults" if is_adult else "children"
+    
+    system_content = (
+        f"You are a financial advisor for {target_audience}. You are given financial records for {child_name}, a {child_age}-year-old. "
+        f"Each record has a transaction_type field, which indicates whether the transaction is an '수입' (income) or '지출' (expense). "
+        f"Ensure that only records with transaction_type set to '지출' are considered in the expense calculation. "
+        f"Respond entirely in Korean. "
+        f"Here are the records categorized by transaction type and amount:\n"
+        f"{[f'{diary.diary_detail} ({diary.transaction_type}): {diary.amount} KRW' for diary in diaries]}\n\n"
+        f"Please provide the following information in JSON format, using the provided data:\n"
+        f"1. 총_수입 (Total income): {total_income}\n"
+        f"2. 총_지출 (Total expenditure): {total_expenditure}\n"
+        f"3. 남은_금액 (Remaining amount): {total_income - total_expenditure}\n"
+        f"4. 카테고리별_지출 (Expenditure by category): {category_expenditure}\n"
+        f"5. 가장_많이_지출한_카테고리 (Category with the highest expenditure)\n"
+    )
+
+    if is_adult:
+        system_content += f"6. 지출_패턴_평가 (Evaluation of the spending pattern and Friendly advice for improvement, within 400 characters)\n"
+    else:
+        system_content += f"6. 지출_패턴_평가 (Don't say kid's name. Say just kid and Evaluation of the spending pattern and Friendly advice for improvement to parent, within 400 characters)\n"
+
     messages = [
         {
             "role": "system",
-            "content": (
-                f"You are a financial advisor for children. You are given pocket money records for {child_name}, a {child_age}-year-old child. "
-                f"Each record has a transaction_type field, which indicates whether the transaction is an '수입' (income) or '지출' (expense). "
-                f"Ensure that only records with transaction_type set to '지출' are considered in the expense calculation. "
-                f"Respond entirely in Korean. "
-                f"Here are the records categorized by transaction type and amount:\n"
-                f"{[f'{diary.diary_detail} ({diary.transaction_type}): {diary.amount} KRW' for diary in diaries]}\n\n"
-                f"Please provide the following information in JSON format, using the provided data:\n"
-                f"1. 총_수입 (Total income): {total_income}\n"
-                f"2. 총_지출 (Total expenditure): {total_expenditure}\n"
-                f"3. 남은_금액 (Remaining amount): {total_income - total_expenditure}\n"
-                f"4. 카테고리별_지출 (Expenditure by category): {category_expenditure}\n"
-                f"5. 가장_많이_지출한_카테고리 (Category with the highest expenditure)\n"
-                f"6. 지출_패턴_평가 (Don't say kid's name. Say just kid and Evaluation of the spending pattern and Friendly advice for improvement to parent, within 400 characters)\n"
-            )
+            "content": system_content
         }
     ]
     
