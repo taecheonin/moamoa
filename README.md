@@ -4,6 +4,10 @@
 - 모아모아는 아이(5세~13세)들에게 금융에대한 이해와 교육을 알려주기 위해 만든 서비스이며, AI와의 채팅을통해 용돈기입장 작성을 도와주고 월간 용돈기입장의 데이터를 통해서 부모님들에게 아이의 소비 습관을 보여주고 그 소비습관에 맞는 방향성을 제시해주는 서비스입니다.
 - **내일배움캠프 최종프로젝트 최우수상 수상**
 
+![SDG 4](https://sdgs.colcomm.net/badge/sdg/4.svg?score=75) 
+![SDG 3](https://sdgs.colcomm.net/badge/sdg/3.svg) 
+![SDG 8](https://sdgs.colcomm.net/badge/sdg/8.svg)
+
 ---
 ## 버전 업데이트
 - **2.2.0 Version (2026-01-24)**
