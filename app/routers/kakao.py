@@ -193,8 +193,6 @@ async def kakao_message_log(
         
         # JSON 데이터 수신
         body = await request.json()
-
-        print(body)
         
         # 특정 블록 ID 체크 및 채팅방 ID 저장
         user_request = body.get("userRequest", {})
@@ -608,8 +606,6 @@ async def kakao_message_log(
                         is_yearly_period = ((today.month == 12 and today.day == 31) or 
                                            today.month in [1, 2])
                         
-                        print(f"DEBUG - Today: {today}, is_monthly_period: {is_monthly_period}, is_yearly_period: {is_yearly_period}")
-                        print(f"DEBUG - Last day of month: {last_day_of_month}, current day: {today.day}")
 
                         # 일일/월말 결산 카드 (데이터가 있는 버튼만 추가)
                         daily_monthly_buttons = []
@@ -735,7 +731,7 @@ async def kakao_message_log(
                 "version": "2.0",
                 "template": {
                     "outputs": [{
-                        "simpleText": {"text": "[부모] 자녀들을 선택 할때?\n/자녀선택 @홍길동\n/자녀선택 @홍길동 @홍길동\n자녀는 5명까지 선택이 가능합니다.\n\n[부모/자녀] 결산 리포트를 보고 싶다면?\n/일일결산 @홍길동\n/월말결산 @홍길동\n/연말결산 @홍길동\n\n[자녀] 용돈 기입장을 작성 하는 방법?\n(날짜, 내용, 금액이 포함되게 작성해주세요)\n/용돈기입장 오늘 엄마가 용돈을 만원 줬어\n/용돈기입장 오늘 형광펜 사느라 1000원 씀\n\n"}
+                        "simpleText": {"text": "[꼭] 자녀선택 부터 해주세요~\n\n자녀들을 선택 할때?\n@뫄뫄AI @홍길동\n@뫄뫄AI @홍길동 @홍길동\n자녀는 5명까지 선택이 가능합니다.\n\n용돈 기입장을 작성 하는 방법?\n(사용내역, 금액이 포함되게 작성해주세요)\n@뫄뫄AI 엄마가 용돈을 만원 줬어\n@뫄뫄AI 형광펜 사느라 1000원 씀"}
                         }]
                 }
             }
