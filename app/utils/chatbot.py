@@ -16,7 +16,10 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from .chat_history import get_message_history, get_current_korea_date
 from ..models.diary import FinanceDiary
+from ..models.diary import FinanceDiary
 from ..models.user import User
+from openai import RateLimitError
+from .logger import log_rate_limit_error
 
 
 # LangChain 프롬프트 설정
@@ -125,7 +128,11 @@ def get_llm():
     """LLM 인스턴스 반환 (지연 초기화)"""
     global llm, with_message_history
     if llm is None:
-        llm = ChatOpenAI(model="gpt-4o-mini", api_key=settings.OPENAI_API_KEY)
+        llm = ChatOpenAI(
+            model=settings.OPENAI_MODEL_NAME,
+            api_key=settings.GITHUB_TOKEN,
+            base_url=settings.OPENAI_ENDPOINT
+        )
         runnable = chat_prompt | llm | StrOutputParser()
         with_message_history = RunnableWithMessageHistory(
             runnable,
@@ -173,11 +180,17 @@ def chat_with_bot(user_input: str, user_id: int) -> str:
                         .replace("expense", "지출")
                         .replace("expenditure", "지출")
                         .replace("spending", "지출")
+                        .replace("spending", "지출")
                         .replace("cost", "지출")
             )
         return response
+    except RateLimitError as e:
+        log_rate_limit_error(str(e))
+        return "현재 AI 서비스 사용량이 많아 잠시 후 다시 시도해주세요."
     except Exception as e:
-        
+        print(f"DEBUG: Chatbot error occurred: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return "죄송합니다. 채팅 서비스에 일시적인 문제가 발생했습니다."
 
 
@@ -193,32 +206,3 @@ def calculate_age(birth_date: date) -> int:
     """
     today = date.today()
     return today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-
-
-def update_remaining_balance(db: Session, child: User) -> None:
-    """
-    잔액 업데이트
-    
-    Args:
-        db: 데이터베이스 세션
-        child: 자녀 사용자
-    """
-    # 해당 child의 모든 finance_diary 기록을 today 날짜 기준으로 정렬
-    finance_entries = db.query(FinanceDiary).filter(
-        FinanceDiary.child_id == child.id
-    ).order_by(FinanceDiary.today).all()
-    
-    total_balance = Decimal('0')
-    for entry in finance_entries:
-        if entry.transaction_type == "수입":
-            total_balance += entry.amount
-        elif entry.transaction_type == "지출":
-            total_balance -= entry.amount
-        
-        # 각 항목의 remaining 업데이트
-        entry.remaining = int(total_balance)
-    
-    # child.total 업데이트
-    child.total = int(total_balance)
-    
-    db.commit()

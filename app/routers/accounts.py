@@ -491,15 +491,27 @@ async def magic_login(
     # 리다이렉트 경로 확인 (기본값: /child_profile/)
     next_url = request.query_params.get("next", "/child_profile/")
     
+    # next_url에서 chat_id 추출하여 쿠키에 저장
+    chat_id = None
+    if "?" in next_url:
+        from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+        parsed = urlparse(next_url)
+        params = parse_qs(parsed.query)
+        
+        if "chat_id" in params:
+            chat_id = params["chat_id"][0]
+            # chat_id 제거 후 URL 재구성
+            del params["chat_id"]
+            new_query = urlencode(params, doseq=True)
+            next_url = urlunparse(parsed._replace(query=new_query))
     
-    
-    # 세션 토큰(JWT) 발급
-    access_token = create_access_token(data={"sub": user.id})
-    refresh_token = create_refresh_token(data={"sub": user.id})
-    
-    # 지정된 경로 또는 기본 경로로 리다이렉트
+    # 지정된 경로 또는 기본 경로로 리다이렉트 (chat_id가 제거된 URL)
     response = RedirectResponse(url=next_url, status_code=303)
     set_auth_cookies(response, access_token, refresh_token)
+    
+    # chat_id가 있었다면 쿠키에 저장 (브라우저 세션 동안 유지)
+    if chat_id:
+        response.set_cookie(key="chat_id", value=str(chat_id), httponly=True)
     
     return response
 

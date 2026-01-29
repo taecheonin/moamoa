@@ -1,0 +1,551 @@
+{% extends 'base.html' %}
+
+{% block title %}모아모아 :: 일일결산{% endblock %}
+
+{% block extra_head %}
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link rel="stylesheet" href="{{ static('css/profile.css') }}">
+<link rel="stylesheet" href="{{ static('css/profile_detail.css') }}?var=0.0.3">
+<style>
+    .container {
+        height: 100vh;
+        overflow-y: auto;
+        padding-bottom: 20px;
+    }
+
+    /* 일일결산 테마 색상: 민트 */
+    .report-header {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .report-header h3 {
+        margin: 0;
+        font-weight: 700;
+        color: #FFCD00;
+    }
+
+    .report-header .report-icon {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+    }
+
+    /* 날짜 선택기 스타일 */
+    .date-picker-container {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .date-picker-container input[type="date"] {
+        padding: 10px 20px;
+        border: 2px solid #FFCD00;
+        border-radius: 10px;
+        background-color: #FFF8DC;
+        font-size: 16px;
+        color: #333;
+    }
+
+    /* 내역 목록 테이블 스타일 */
+    .entry-table-container {
+        background: white;
+        border-radius: 15px;
+        padding: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(78, 205, 196, 0.2);
+    }
+
+    .entry-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .entry-table th {
+        background: linear-gradient(135deg, #FFCD00 0%, #FFB347 100%);
+        color: white;
+        padding: 12px 8px;
+        text-align: center;
+        font-weight: 600;
+    }
+
+    .entry-table th:first-child {
+        border-radius: 10px 0 0 0;
+    }
+
+    .entry-table th:last-child {
+        border-radius: 0 10px 0 0;
+    }
+
+    .entry-table td {
+        padding: 10px 8px;
+        text-align: center;
+        border-bottom: 1px solid #FFF8DC;
+    }
+
+    .entry-table tr:hover {
+        background-color: #F0FFFE;
+    }
+
+    .income-amount {
+        color: #27AE60;
+        font-weight: 600;
+    }
+
+    .expense-amount {
+        color: #E74C3C;
+        font-weight: 600;
+    }
+
+    .category-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        background-color: #FFF8DC;
+        color: #FFCD00;
+    }
+
+    /* 요약 카드 스타일 */
+    .summary-cards {
+        display: flex;
+        justify-content: space-around;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .summary-card {
+        flex: 1;
+        background: white;
+        border-radius: 15px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 2px 10px rgba(78, 205, 196, 0.15);
+    }
+
+    .summary-card.income {
+        border-top: 4px solid #27AE60;
+    }
+
+    .summary-card.expense {
+        border-top: 4px solid #E74C3C;
+    }
+
+    .summary-card.balance {
+        border-top: 4px solid #FFCD00;
+    }
+
+    .summary-card h6 {
+        color: #666;
+        font-size: 12px;
+        margin-bottom: 5px;
+    }
+
+    .summary-card .amount {
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .summary-card.income .amount {
+        color: #27AE60;
+    }
+
+    .summary-card.expense .amount {
+        color: #E74C3C;
+    }
+
+    .summary-card.balance .amount {
+        color: #FFCD00;
+    }
+
+    /* 파이 차트 컨테이너 */
+    .chart-container {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(78, 205, 196, 0.15);
+        max-width: 100%;
+    }
+
+    .chart-container h5 {
+        color: #FFCD00;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+
+    /* 차트+범례를 한 줄에 배치해 흰 여백 축소 */
+    .chart-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+    }
+
+    #pie-chart {
+        flex-shrink: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .category-legend {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 12px 16px;
+        margin-top: 0;
+        min-width: 140px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+    }
+
+    .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    /* AI 한마디 스타일 */
+    .ai-comment {
+        background: linear-gradient(135deg, #FFF8DC 0%, #D1F2EB 100%);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid #FFCD00;
+    }
+
+    .ai-comment h5 {
+        color: #FFCD00;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .ai-comment p {
+        color: #333;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    /* 로딩 상태 */
+    .loading-message {
+        text-align: center;
+        padding: 40px;
+        color: #FFCD00;
+        font-size: 16px;
+    }
+
+    .no-data-message {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+        background: #f9f9f9;
+        border-radius: 15px;
+        margin-bottom: 20px;
+    }
+
+    /* 프로필 카드 */
+    .profile-card {
+        background: linear-gradient(135deg, #FFCD00 0%, #FFB347 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .profile-card h5 {
+        margin: 0;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- 리포트 헤더 -->
+    <div class="report-header">
+        <div class="report-icon">📅</div>
+        <h3>일일결산 리포트</h3>
+    </div>
+
+    <!-- 날짜 선택기 -->
+    <div class="date-picker-container">
+        <input type="date" id="daily-date-picker">
+    </div>
+
+
+
+    <!-- 로딩 메시지 -->
+    <div id="loading-message" class="loading-message" style="display: none;">
+        오늘 하루 기록을 불러오는 중...📅
+    </div>
+
+    <!-- 데이터 없음 메시지 -->
+    <div id="no-data-message" class="no-data-message" style="display: none;">
+        <p>📅 선택한 날짜에 기록된 내역이 없습니다.</p>
+        <p>용돈기입장에서 사용 내역을 입력해 주세요!</p>
+    </div>
+
+    <!-- 일일 요약 카드 -->
+    <div id="summary-section" class="summary-cards" style="display: none;">
+        <div class="summary-card income">
+            <h6>총 수입</h6>
+            <div class="amount" id="total-income">0원</div>
+        </div>
+        <div class="summary-card expense">
+            <h6>총 지출</h6>
+            <div class="amount" id="total-expense">0원</div>
+        </div>
+        <div class="summary-card balance">
+            <h6>일일 잔액</h6>
+            <div class="amount" id="daily-balance">0원</div>
+        </div>
+    </div>
+
+    <!-- 내역 목록 테이블 -->
+    <div id="entry-table-section" class="entry-table-container" style="display: none;">
+        <h5 style="color: #FFCD00; margin-bottom: 15px;">📋 오늘의 내역</h5>
+        <table class="entry-table">
+            <thead>
+                <tr>
+                    <th>구분</th>
+                    <th>내용</th>
+                    <th>카테고리</th>
+                    <th>금액</th>
+                </tr>
+            </thead>
+            <tbody id="entry-table-body">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 카테고리별 파이 차트 -->
+    <div id="chart-section" class="chart-container" style="display: none;">
+        <h5>📊 카테고리별 지출</h5>
+        <div class="chart-wrapper">
+            <div id="pie-chart"></div>
+            <div id="category-legend" class="category-legend"></div>
+        </div>
+    </div>
+
+    <!-- AI 한마디 -->
+    <div id="ai-comment-section" class="ai-comment" style="display: none;">
+        <h5>✏️ 모아모아의 한마디</h5>
+        <p id="ai-comment-text"></p>
+    </div>
+</div>
+
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+        const childId = "{{ child_id }}";
+        const chatId = {% if chat_id is not none %}{{ chat_id }}{% else %}null{% endif %};
+    const datePicker = document.getElementById('daily-date-picker');
+
+    // 카테고리별 색상
+    const categoryColors = {
+        '음식': '#FF9999',
+        '음료/간식': '#FFB76F',
+        '문구/완구': '#FDEA3B',
+        '교통': '#7BEF7B',
+        '문화/여가': '#99CCFF',
+        '선물': '#FF99CC',
+        '저축': '#21FFFF',
+        '기타/지출': '#CC99FF',
+        '용돈': '#FFCD00',
+        '기타/수입': '#98D8C8'
+    };
+
+    // 어제 날짜를 기본으로 초기화 (일일결산은 전일 기준 결과 표시)
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const todayStr = today.toISOString().split('T')[0];
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    datePicker.value = yesterdayStr;
+    datePicker.max = todayStr;
+
+    // 날짜 변경 이벤트
+    datePicker.addEventListener('change', function () {
+        loadDailySummary(childId, this.value);
+    });
+
+    // 초기 데이터 로드 (어제자 결과)
+    loadDailySummary(childId, yesterdayStr);
+
+    function loadDailySummary(childId, date) {
+        const loadingEl = document.getElementById('loading-message');
+        const noDataEl = document.getElementById('no-data-message');
+        const summaryEl = document.getElementById('summary-section');
+        const tableEl = document.getElementById('entry-table-section');
+        const chartEl = document.getElementById('chart-section');
+        const aiEl = document.getElementById('ai-comment-section');
+
+        // 초기화
+        loadingEl.style.display = 'block';
+        noDataEl.style.display = 'none';
+        summaryEl.style.display = 'none';
+        tableEl.style.display = 'none';
+        chartEl.style.display = 'none';
+        aiEl.style.display = 'none';
+
+        // 서버 API 호출
+        fetch(`/api/v1/diary/daily/${childId}/`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                date: date,
+                chat_id: chatId || null
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                loadingEl.style.display = 'none';
+
+                if (data.message) {
+                    // 데이터 없음
+                    noDataEl.style.display = 'block';
+                    // 메시지를 UI에 표시하려면: noDataEl.querySelector('p').textContent = data.message;
+                    return;
+                }
+
+                let summary = data.summary;
+                if (!summary && data.content) {
+                    try { summary = JSON.parse(data.content).summary; } catch (e) { }
+                }
+
+                if (!summary) return;
+
+                // 요약 표시
+                document.getElementById('total-income').textContent = summary.총_수입.toLocaleString('ko-KR') + '원';
+                document.getElementById('total-expense').textContent = summary.총_지출.toLocaleString('ko-KR') + '원';
+                document.getElementById('daily-balance').textContent = summary.남은_금액.toLocaleString('ko-KR') + '원';
+                summaryEl.style.display = 'flex';
+
+                // 테이블 및 파이 차트를 위한 데이터는 여전히 detail이 필요할 수 있음
+                // 하지만 현재 DailySummary API는 detail list를 주지 않음. (MonthlySummary 등과 달리)
+                // 따라서 detail을 위해 기존 GET API도 호출해야 할 수 있음.
+                // 하지만 AI 요약에는 "카테고리별_지출"이 있으므로 파이차트는 그릴 수 있음.
+
+                // 테이블은 별도로 가져와야 함.
+                // 기존 로직 유지하면서 Summary만 교체? -> 너무 복잡함.
+                // 가장 좋은건 DailySummaryResponse에 상세 리스트도 포함하는 것.
+                // 하지면 현재 DailySummaryResponse에는 포함 안됨.
+
+                // 일단 상세 내역도 보여줘야 하므로, 기존 fetch 로직(일자별 조회)을 살려서 테이블을 채우거나,
+                // DailySummary API가 상세 내역도 리턴하도록 수정해야 함.
+                // 사용자가 "AI 평가 데이터 저장"을 원했으므로, AI 부분은 API 결과를 쓰고, 리스트는 별도 조회 혹은 API 수정.
+
+                // API 수정보다는 여기서 조회 한번 더 하는게 안전.
+                const [year, month] = date.split('-');
+
+                fetch(`/api/v1/diary/${childId}/${year}/${month}/` + (chatId ? `?chat_id=${chatId}` : ''))
+                    .then(res => res.json())
+                    .then(detailData => {
+                        const dailyEntries = (detailData.diary || []).filter(entry => entry.today === date);
+
+                        const tableBody = document.getElementById('entry-table-body');
+                        tableBody.innerHTML = '';
+                        dailyEntries.forEach(entry => {
+                            const row = document.createElement('tr');
+                            const isIncome = entry.transaction_type === '수입';
+                            row.innerHTML = `
+                    <td>${isIncome ? '💰 수입' : '💸 지출'}</td>
+                    <td>${entry.diary_detail || '-'}</td>
+                    <td><span class="category-badge">${entry.category || '-'}</span></td>
+                    <td class="${isIncome ? 'income-amount' : 'expense-amount'}">
+                        ${isIncome ? '+' : '-'}${parseFloat(entry.amount).toLocaleString('ko-KR')}원
+                    </td>
+                    `;
+                            tableBody.appendChild(row);
+                        });
+                        if (dailyEntries.length > 0) tableEl.style.display = 'block';
+                    });
+
+
+                // 파이 차트 (AI 분석 결과 사용)
+                if (summary.카테고리별_지출 && Object.keys(summary.카테고리별_지출).length > 0) {
+                    // 문자열 값 처리
+                    const parsedCat = {};
+                    for (const [k, v] of Object.entries(summary.카테고리별_지출)) {
+                        parsedCat[k] = parseFloat(v);
+                    }
+                    drawPieChart(parsedCat, categoryColors);
+                    chartEl.style.display = 'block';
+                }
+
+                // AI 한마디
+                const commentEl = document.getElementById('ai-comment-text');
+                commentEl.textContent = summary.일일_평가 || "AI 평가가 없습니다.";
+                aiEl.style.display = 'block';
+
+            })
+            .catch(err => {
+                loadingEl.style.display = 'none';
+                noDataEl.style.display = 'block';
+                console.error('데이터 로드 오류:', err);
+            });
+    }
+
+    function drawPieChart(data, colors) {
+        const chartContainer = document.getElementById('pie-chart');
+        const legendContainer = document.getElementById('category-legend');
+        chartContainer.innerHTML = '';
+        legendContainer.innerHTML = '';
+
+        const width = 280;
+        const height = 280;
+        const radius = Math.min(width, height) / 2 - 16;
+        const innerRadius = 64;
+
+        const svg = d3.select('#pie-chart')
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height)
+            .append('g')
+            .attr('transform', `translate(${width / 2}, ${height / 2})`);
+
+        const color = d3.scaleOrdinal()
+            .domain(Object.keys(colors))
+            .range(Object.values(colors));
+
+        const pie = d3.pie().value(d => d[1]);
+        const dataReady = pie(Object.entries(data));
+        const total = Object.values(data).reduce((a, b) => a + b, 0);
+
+        svg.selectAll('path')
+            .data(dataReady)
+            .join('path')
+            .attr('d', d3.arc().innerRadius(innerRadius).outerRadius(radius))
+            .attr('fill', d => colors[d.data[0]] || '#CC99FF')
+            .attr('stroke', 'white')
+            .style('stroke-width', '2px')
+            .style('opacity', 0.85);
+
+        // 범례 생성
+        Object.entries(data).forEach(([category, amount]) => {
+            const percentage = ((amount / total) * 100).toFixed(1);
+            const legendItem = document.createElement('div');
+            legendItem.className = 'legend-item';
+            legendItem.innerHTML = `
+                <span class="legend-color" style="background-color: ${colors[category] || '#CC99FF'}"></span>
+                <span>${category} (${percentage}%)</span>
+            `;
+            legendContainer.appendChild(legendItem);
+        });
+    }
+});
+</script>
+{% endblock %}

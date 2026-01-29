@@ -45,6 +45,8 @@
   const voiceButton = document.getElementById('voice-button');
   let isRecording = false;
 
+  // chat_id 변수 추가
+  const chatId = "{{ chat_id or '' }}";
 
   function getChildPkFromUrl() {
     const pathSegments = window.location.pathname.split('/');
@@ -72,12 +74,12 @@
       },
     })
       .then(response => {
-        if (response.status === 403) {  // 권한 없음 상태 (잘못된 접근)
-          window.location.href = '/access-error/';  // 접근 불가 에러 페이지로 리다이렉트
+        if (response.status === 403) {
+          window.location.href = '/access-error/';
           return;
         }
-        if (response.status === 401) {  // 401 Unauthorized 상태 확인
-          window.location.href = '/login/';  // 로그인 페이지로 리다이렉트
+        if (response.status === 401) {
+          window.location.href = '/login/';
           return;
         }
         return response.json();
@@ -94,27 +96,22 @@
             const usernameElement = document.createElement('div');
             usernameElement.classList.add('chat-username');
 
-            // 프로필 이미지 추가 부분
             const profileImage = document.createElement('img');
-            profileImage.src = message.user_profile_image || message.ai_profile_image; // 기본 이미지 설정
+            profileImage.src = message.user_profile_image || message.ai_profile_image;
             profileImage.alt = 'Profile';
-            profileImage.classList.add('profile-image'); // CSS로 동그랗게 만들기 위해 클래스 추가
+            profileImage.classList.add('profile-image');
 
-            // 이미지와 이름을 함께 추가
             usernameElement.appendChild(profileImage);
             usernameElement.appendChild(document.createTextNode(message.type === 'USER' ? message.username : message.ai_name));
 
             const messageElement = document.createElement('div');
             messageElement.classList.add('chat-bubble');
 
-            // 메시지 내용 처리
             let decodedContent = decodeHTMLEntities(message.content);
             const jsonBlockRegex = /```json[\s\S]*?```/g;
-            // [수정] 역할에 따른 완료 메시지
             const isChild = document.getElementById('isChild').value === 'true';
             const successMsg = isChild ? '용돈기입장에 성공적으로 저장되었어요!😀' : '가계부에 성공적으로 저장되었어요!😀';
             decodedContent = decodedContent.replace(jsonBlockRegex, successMsg);
-
 
             let formattedContent = decodedContent.trim();
             if (formattedContent) {
@@ -135,7 +132,6 @@
               };
 
               const sanitizedContent = DOMPurify.sanitize(formattedContent, sanitizeConfig);
-
               messageElement.innerHTML = sanitizedContent;
             }
 
@@ -149,8 +145,6 @@
             chatHistory.appendChild(messageContainer);
           });
           chatHistory.scrollTop = chatHistory.scrollHeight;
-        } else {
-          console.error('Expected an array in `data.response` but got:', data.response);
         }
       })
       .catch(error => {
@@ -162,14 +156,12 @@
     const message = chatInput.value.trim();
     if (message) {
       const childPk = getChildPkFromUrl();
-      const username = document.getElementById('username').value; // 사용자 이름 가져오기
+      const username = document.getElementById('username').value;
       const userProfileImage = document.getElementById('userProfileImage').value;
-      // 입력창 비활성화 및 로딩 상태 표시
       chatInput.disabled = true;
       chatInput.value = '';
       chatInput.placeholder = '모아모아가 생각 중입니다...🤔';
 
-      // 유저 메시지를 먼저 화면에 추가
       const messageContainer = document.createElement('div');
       messageContainer.classList.add('message-container', 'chat-right');
 
@@ -177,55 +169,54 @@
       usernameElement.classList.add('chat-username');
 
       const profileImage = document.createElement('img');
-      profileImage.src = userProfileImage; // 사용자 프로필 이미지 URL
+      profileImage.src = userProfileImage;
       profileImage.alt = 'Profile';
       profileImage.classList.add('profile-image');
 
       usernameElement.appendChild(profileImage);
-      usernameElement.appendChild(document.createTextNode(username)); // 사용자 이름 추가
+      usernameElement.appendChild(document.createTextNode(username));
 
       const messageElement = document.createElement('div');
       messageElement.classList.add('chat-bubble');
-      messageElement.innerHTML = message.replace(/\n/g, '<br>'); // 줄바꿈 처리
+      messageElement.innerHTML = message.replace(/\n/g, '<br>');
 
       const timestampElement = document.createElement('div');
       timestampElement.classList.add('timestamp');
-      timestampElement.textContent = formatTimestamp(new Date()); // 현재 시간 표시
+      timestampElement.textContent = formatTimestamp(new Date());
 
       messageContainer.appendChild(usernameElement);
       messageContainer.appendChild(messageElement);
       messageContainer.appendChild(timestampElement);
       chatHistory.appendChild(messageContainer);
-      chatHistory.scrollTop = chatHistory.scrollHeight; // 스크롤을 아래로 이동
+      chatHistory.scrollTop = chatHistory.scrollHeight;
 
-      // 서버에 메시지 전송
+      const payload = { message: message, child_pk: childPk };
+      if (chatId) {
+        payload.chat_id = chatId;
+      }
+
       fetch('/api/v1/diary/chat/', {
         credentials: 'include',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: message, child_pk: childPk })
+        body: JSON.stringify(payload)
       })
         .then(response => response.json())
         .then(data => {
-          loadChatHistory(); // AI의 응답과 기존 기록 로드
-
-          // 입력창 활성화 및 원래 상태로 복원
+          loadChatHistory();
           chatInput.disabled = false;
           chatInput.placeholder = '메시지를 입력하세요...';
           chatInput.focus();
         })
         .catch(error => {
           console.error('Error:', error);
-
-          // 오류가 발생해도 입력창을 다시 활성화
           chatInput.disabled = false;
           chatInput.placeholder = '메시지를 입력하세요...';
         });
     }
   }
-
 
   document.addEventListener('DOMContentLoaded', function () {
     sendButton.addEventListener('click', sendMessage);
@@ -237,14 +228,13 @@
     // voiceButton.addEventListener('click', toggleVoiceRecording);
 
     loadChatHistory();
-    // setInterval(loadChatHistory, 5000);
   });
 
   function adjustChatHistoryHeight() {
     const chatInputContainer = document.getElementById('chat-input-container');
     const chatHistory = document.getElementById('chat-history');
     const chatInputHeight = chatInputContainer.offsetHeight;
-    chatHistory.style.height = `calc(100vh - ${chatInputHeight}px - 60px)`; // 60px는 모아모아 배너 높이
+    chatHistory.style.height = `calc(100vh - ${chatInputHeight}px - 60px)`;
   }
 
   window.addEventListener('load', adjustChatHistoryHeight);

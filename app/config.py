@@ -19,8 +19,13 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_DAYS: int = 1
     REFRESH_TOKEN_EXPIRE_DAYS: int = 1
     
-    # OpenAI 설정
+    # OpenAI 설정 (Legacy)
     OPENAI_API_KEY: str = ""
+
+    # GitHub Model Settings
+    GITHUB_TOKEN: str = ""
+    OPENAI_ENDPOINT: str = "https://models.github.ai/inference"
+    OPENAI_MODEL_NAME: str = "gpt-4o-mini"
     
     # 카카오 OAuth 설정
     CLIENT_SECRET: str = ""

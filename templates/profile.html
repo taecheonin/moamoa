@@ -5,7 +5,7 @@
 {% block extra_head %}
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <link rel="stylesheet" href="{{ static('css/profile.css') }}">
-<link rel="stylesheet" href="{{ static('css/profile_detail.css') }}?var=0.0.1">
+<link rel="stylesheet" href="{{ static('css/profile_detail.css') }}?var=0.0.2">
 <!-- jQuery와 jQuery UI 추가 -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css" />
@@ -22,6 +22,92 @@
 
     #dashboard-section {
         display: block;
+    }
+
+    /* 결산 타입 탭 스타일 */
+    .report-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .report-tab {
+        padding: 10px 20px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        border: 2px solid #FFCD00;
+        background: white;
+        color: #333;
+    }
+
+    .report-tab:hover {
+        background: #FFF8DC;
+    }
+
+    .report-tab.active {
+        background: linear-gradient(135deg, #FFCD00 0%, #FFB347 100%);
+        color: white;
+        border-color: #FFCD00;
+        box-shadow: 0 4px 15px rgba(255, 205, 0, 0.4);
+    }
+
+    .report-tab.daily.active {
+        background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+        border-color: #4ECDC4;
+        box-shadow: 0 4px 15px rgba(78, 205, 196, 0.4);
+    }
+
+    .report-tab.yearly.active {
+        background: linear-gradient(135deg, #A770EF 0%, #CF8BF3 100%);
+        border-color: #A770EF;
+        box-shadow: 0 4px 15px rgba(167, 112, 239, 0.4);
+    }
+
+    /* 일일결산 날짜 선택기 */
+    .date-picker-container {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .date-picker-container input[type="date"] {
+        padding: 8px 15px;
+        border: 2px solid #FFCD00;
+        border-radius: 10px;
+        background-color: #FFFEF0;
+        font-size: 14px;
+    }
+
+    /* 리포트 헤더 스타일 */
+    .report-header {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .report-header h3 {
+        margin: 0;
+        font-weight: 700;
+    }
+
+    .report-header.daily h3 {
+        color: #4ECDC4;
+    }
+
+    .report-header.monthly h3 {
+        color: #FFCD00;
+    }
+
+    .report-header.yearly h3 {
+        color: #A770EF;
+    }
+
+    .report-header .report-icon {
+        font-size: 2em;
+        margin-bottom: 10px;
     }
 </style>
 {% endblock %}
@@ -68,12 +154,42 @@
             <h4>안녕하세요. 부모님!</h4>
         </div>
 
-        <!-- 년월 선택 입력 필드 -->
-        <div class="d-flex justify-content-center mb-3">
+        <!-- 결산 타입 탭 -->
+        <div class="report-tabs">
+            <div class="report-tab daily" data-type="daily" onclick="switchReportType('daily')">
+                📅 일일결산
+            </div>
+            <div class="report-tab monthly" data-type="monthly" onclick="switchReportType('monthly')">
+                📆 월말결산
+            </div>
+            <div class="report-tab yearly" data-type="yearly" onclick="switchReportType('yearly')">
+                🎉 연말결산
+            </div>
+        </div>
+
+        <!-- 리포트 헤더 -->
+        <div class="report-header" id="report-header">
+            <div class="report-icon" id="report-icon">📆</div>
+            <h3 id="report-title">월말결산 리포트</h3>
+        </div>
+
+        <!-- 일일결산 날짜 선택기 -->
+        <div class="date-picker-container" id="daily-picker" style="display: none;">
+            <input type="date" id="daily-date-picker" onchange="onDailyDateChange()">
+        </div>
+
+        <!-- 월말결산 년월 선택 입력 필드 -->
+        <div class="d-flex justify-content-center mb-3" id="monthly-picker">
             <select id="year-picker" class="form-select w-auto"
                 style="background-color: rgb(255, 252, 241); border-color: #FFCD00;">년</select>
             <select id="month-picker" class="form-select w-auto ms-2"
                 style="background-color: rgb(255, 252, 241); border-color: #FFCD00;">월</select>
+        </div>
+
+        <!-- 연말결산 년도 선택기 -->
+        <div class="d-flex justify-content-center mb-3" id="yearly-picker" style="display: none;">
+            <select id="yearly-year-picker" class="form-select w-auto"
+                style="background-color: #F3E5F5; border-color: #A770EF;">년</select>
         </div>
 
         <!-- Profile Card -->
@@ -169,16 +285,260 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_script %}
 <script type="text/javascript">
     // 전역 상태
     let currentChildId = null;
+    let currentReportType = 'monthly';
 
     function getChildIdFromUrl() {
         const urlParams = new URLSearchParams(window.location.search);
         return urlParams.get('child_id');
+    }
+
+    function getReportTypeFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('report_type') || 'monthly';
+    }
+
+    // 리포트 타입 전환 함수
+    function switchReportType(type) {
+        currentReportType = type;
+
+        // 탭 활성화 상태 업데이트
+        document.querySelectorAll('.report-tab').forEach(tab => {
+            tab.classList.remove('active');
+            if (tab.dataset.type === type) {
+                tab.classList.add('active');
+            }
+        });
+
+        // 헤더 업데이트
+        const header = document.getElementById('report-header');
+        const icon = document.getElementById('report-icon');
+        const title = document.getElementById('report-title');
+
+        header.className = 'report-header ' + type;
+
+        if (type === 'daily') {
+            icon.textContent = '📅';
+            title.textContent = '일일결산 리포트';
+        } else if (type === 'monthly') {
+            icon.textContent = '📆';
+            title.textContent = '월말결산 리포트';
+        } else if (type === 'yearly') {
+            icon.textContent = '🎉';
+            title.textContent = '연말결산 리포트';
+        }
+
+        // 날짜 선택기 표시/숨김
+        document.getElementById('daily-picker').style.display = type === 'daily' ? 'flex' : 'none';
+        document.getElementById('monthly-picker').style.display = type === 'monthly' ? 'flex' : 'none';
+        document.getElementById('yearly-picker').style.display = type === 'yearly' ? 'flex' : 'none';
+
+        // 데이터 로드
+        if (currentChildId) {
+            if (type === 'daily') {
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+                const todayStr = today.toISOString().split('T')[0];
+                const dailyPicker = document.getElementById('daily-date-picker');
+                if (dailyPicker) {
+                    dailyPicker.value = yesterdayStr;
+                    dailyPicker.max = todayStr;
+                }
+                loadDailySummary(currentChildId, yesterdayStr);
+            } else if (type === 'monthly') {
+                const yp = document.getElementById('year-picker');
+                const mp = document.getElementById('month-picker');
+                if (yp.value && mp.value) {
+                    diaries_monthlysummary(currentChildId, yp.value, mp.value);
+                }
+            } else if (type === 'yearly') {
+                const yyp = document.getElementById('yearly-year-picker');
+                if (yyp.value) {
+                    loadYearlySummary(currentChildId, yyp.value);
+                }
+            }
+        }
+    }
+
+    // 일일결산 날짜 변경
+    function onDailyDateChange() {
+        const date = document.getElementById('daily-date-picker').value;
+        if (currentChildId && date) {
+            loadDailySummary(currentChildId, date);
+        }
+    }
+
+    // 일일결산 데이터 로드
+    function loadDailySummary(childId, date) {
+        startLoading();
+        const loadingContainer = document.querySelector('.loading-container');
+        if (loadingContainer) loadingContainer.style.display = 'block';
+
+        const loadingMessage = document.querySelector('.spending-summary-red');
+        if (loadingMessage) {
+            loadingMessage.textContent = '오늘 하루 기록을 리포트 중입니다...📅';
+            loadingMessage.style.display = 'block';
+        }
+
+        ['.spending-chart', '.max-expenditure-container', '.spending-summary', '.summaryview', '.evaluation'].forEach(sel => {
+            const el = document.querySelector(sel);
+            if (el) el.style.display = 'none';
+        });
+
+        fetch(`/api/v1/diary/daily/${childId}/`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: date })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (loadingInterval) clearInterval(loadingInterval);
+                updateProgressBar(100);
+                setTimeout(() => {
+                    if (loadingContainer) loadingContainer.style.display = 'none';
+                }, 500);
+
+                if (data.message) {
+                    if (loadingMessage) {
+                        loadingMessage.textContent = `📅 ${date}\n\n${data.message}`;
+                        loadingMessage.style.display = 'block';
+                    }
+                    return;
+                }
+
+                if (data.summary || data.content) {
+                    let summary = data.summary;
+                    if (!summary && data.content) {
+                        try { summary = JSON.parse(data.content).summary; } catch (e) { }
+                    }
+
+                    if (!summary) return;
+
+                    if (loadingMessage) loadingMessage.style.display = 'none';
+                    ['.spending-summary', '.spending-chart', '.max-expenditure-container', '.evaluation', '.summaryview'].forEach(sel => {
+                        const el = document.querySelector(sel);
+                        if (el) el.style.display = 'block';
+                    });
+
+                    document.querySelector('.totalincome').textContent = summary.총_수입.toLocaleString('ko-KR');
+                    document.querySelector('.totalexpenses').textContent = summary.총_지출.toLocaleString('ko-KR');
+                    document.querySelector('.remainingamount').textContent = summary.남은_금액.toLocaleString('ko-KR');
+
+                    updateMaxExpenditureBox(summary.가장_많이_지출한_카테고리);
+
+                    document.querySelector('.evaluationmsg').textContent = summary.일일_평가 || "평가 내용이 없습니다.";
+                    document.querySelector('.summarymonth').textContent = date.replace(/-/g, '.');
+
+                    if (summary.카테고리별_지출 && Object.keys(summary.카테고리별_지출).length > 0) {
+                        // 문자열로 된 값일 수 있으므로 파싱
+                        const parsedCategoryExpenses = Object.fromEntries(
+                            Object.entries(summary.카테고리별_지출).map(([k, v]) => [k, parseFloat(v)])
+                        );
+                        drawPieChart(parsedCategoryExpenses);
+                    } else {
+                        document.querySelector('.spending-chart').style.display = 'none';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error("일일 리포트 로드 실패:", error);
+                if (loadingMessage) {
+                    loadingMessage.textContent = "리포트를 불러오는 중 오류가 발생했습니다.";
+                }
+            });
+    }
+
+    // 연말결산 데이터 로드
+    function loadYearlySummary(childId, year) {
+        startLoading();
+        const loadingContainer = document.querySelector('.loading-container');
+        if (loadingContainer) loadingContainer.style.display = 'block';
+
+        const loadingMessage = document.querySelector('.spending-summary-red');
+        if (loadingMessage) {
+            loadingMessage.textContent = `${year}년 한 해 기록을 분석하는 중...🎉`;
+            loadingMessage.style.display = 'block';
+        }
+
+        ['.spending-chart', '.max-expenditure-container', '.spending-summary', '.summaryview', '.evaluation'].forEach(sel => {
+            const el = document.querySelector(sel);
+            if (el) el.style.display = 'none';
+        });
+
+        // 1월부터 12월까지 데이터 수집
+        const monthPromises = [];
+        for (let m = 1; m <= 12; m++) {
+            const monthStr = m.toString().padStart(2, '0');
+            monthPromises.push(
+                fetch(`/api/v1/diary/${childId}/${year}/${monthStr}/`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' }
+                }).then(res => res.json()).catch(() => ({ diary: [] }))
+            );
+        }
+
+        Promise.all(monthPromises).then(results => {
+            if (loadingInterval) clearInterval(loadingInterval);
+            updateProgressBar(100);
+            setTimeout(() => {
+                if (loadingContainer) loadingContainer.style.display = 'none';
+            }, 500);
+
+            let totalIncome = 0, totalExpense = 0;
+            const categoryExpenses = {};
+            let totalEntries = 0;
+
+            results.forEach(data => {
+                (data.diary || []).forEach(entry => {
+                    totalEntries++;
+                    const amount = parseFloat(entry.amount) || 0;
+                    if (entry.transaction_type === '수입') {
+                        totalIncome += amount;
+                    } else {
+                        totalExpense += amount;
+                        const cat = entry.category || '기타';
+                        categoryExpenses[cat] = (categoryExpenses[cat] || 0) + amount;
+                    }
+                });
+            });
+
+            if (totalEntries === 0) {
+                if (loadingMessage) {
+                    loadingMessage.textContent = `🎉 ${year}년\n\n올해 기록된 내역이 없습니다.\n용돈기입장에서 사용 내역을 입력해 주세요!`;
+                    loadingMessage.style.display = 'block';
+                }
+                return;
+            }
+
+            if (loadingMessage) loadingMessage.style.display = 'none';
+            ['.spending-summary', '.spending-chart', '.max-expenditure-container', '.evaluation', '.summaryview'].forEach(sel => {
+                const el = document.querySelector(sel);
+                if (el) el.style.display = 'block';
+            });
+
+            document.querySelector('.totalincome').textContent = totalIncome.toLocaleString('ko-KR');
+            document.querySelector('.totalexpenses').textContent = totalExpense.toLocaleString('ko-KR');
+            document.querySelector('.remainingamount').textContent = (totalIncome - totalExpense).toLocaleString('ko-KR');
+
+            const maxCategory = Object.entries(categoryExpenses).sort((a, b) => b[1] - a[1])[0];
+            if (maxCategory) {
+                updateMaxExpenditureBox(maxCategory[0]);
+            }
+
+            document.querySelector('.evaluationmsg').textContent = `${year}년 한 해 동안 총 ${totalEntries}건의 기록이 있습니다. 연간 ${totalExpense.toLocaleString()}원을 사용했어요! 🎊`;
+            document.querySelector('.summarymonth').textContent = year + '년';
+
+            if (Object.keys(categoryExpenses).length > 0) {
+                drawPieChart(categoryExpenses);
+            }
+        });
     }
 
     function showReport(childId) {
@@ -194,6 +554,32 @@
 
         // 년/월 데이터 가져와서 초기 요약 노출
         fetchAvailableMonths(childId);
+
+        // 연말결산용 년도 선택기 초기화
+        initYearlyPicker(childId);
+
+        // 초기 리포트 타입 설정
+        const initialReportType = getReportTypeFromUrl();
+        switchReportType(initialReportType);
+    }
+
+    function initYearlyPicker(childId) {
+        const yearlyPicker = document.getElementById('yearly-year-picker');
+        if (!yearlyPicker) return;
+
+        yearlyPicker.innerHTML = '';
+        const currentYear = new Date().getFullYear();
+        for (let y = currentYear; y >= currentYear - 5; y--) {
+            const option = document.createElement('option');
+            option.value = y;
+            option.textContent = y + '년';
+            yearlyPicker.appendChild(option);
+        }
+        yearlyPicker.value = currentYear;
+
+        yearlyPicker.onchange = () => {
+            loadYearlySummary(currentChildId, yearlyPicker.value);
+        };
     }
 
     function showDashboard() {
@@ -206,19 +592,40 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        const initialChildId = getChildIdFromUrl();
+        const viewMode = "{{ view_mode }}"; // dashboard or report
+        const serverChildId = "{{ child_id }}"; // Jinja2 context
 
-        // 초기 섹션 결정
-        if (initialChildId) {
-            showReport(initialChildId);
-            // 진입 후 즉시 URL 파라미터 제거 (보안 및 미관상 /profile/ 유지)
-            window.history.replaceState({}, '', window.location.pathname);
+        if (viewMode === 'report' && serverChildId && serverChildId !== 'None') {
+            // 리포트 전용 모드 (대시보드 숨김)
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('report-section').style.display = 'block';
+
+            // 전역 변수 설정
+            currentChildId = serverChildId;
+
+            // 리포트 데이터 로드
+            showReport(currentChildId);
+
+            // 뒤로가기 버튼 등을 상황에 맞게 조정하려면 여기서 처리
+            // (예: 대시보드로 가는 버튼 숨기거나 변경)
+
         } else {
-            loadDashboard();
+            // 기존 대시보드 로직
+            const initialChildId = getChildIdFromUrl();
+            if (initialChildId) {
+                showReport(initialChildId);
+                // 진입 후 즉시 URL 파라미터 제거 (보안 및 미관상 /profile/ 유지)
+                window.history.replaceState({}, '', window.location.pathname);
+            } else {
+                loadDashboard();
+            }
         }
 
         // 브라우저 뒤로가기 대응
         window.addEventListener('popstate', function (event) {
+            // 리포트 모드일 경우 뒤로가기 처리는 브라우저 기본 동작 따름
+            if (viewMode === 'report') return;
+
             const childId = event.state ? event.state.child_id : null;
             if (childId) {
                 showReport(childId);
@@ -228,9 +635,19 @@
         });
 
         // 오늘 날짜 설정
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
         const birthdayEl = document.getElementById('edit-birthday');
-        if (birthdayEl) birthdayEl.setAttribute('max', today);
+        if (birthdayEl) birthdayEl.setAttribute('max', todayStr);
+
+        // 일일결산 날짜 선택기 초기화 (기본값: 어제)
+        const dailyDatePicker = document.getElementById('daily-date-picker');
+        if (dailyDatePicker) {
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            dailyDatePicker.value = yesterday.toISOString().split('T')[0];
+            dailyDatePicker.max = todayStr;
+        }
     });
 
     // --- 대시보드 로직 ---

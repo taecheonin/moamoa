@@ -42,5 +42,8 @@ def get_db():
 
 def init_db():
     """데이터베이스 테이블 생성"""
-    from .models import User, FinanceDiary, MonthlySummary, KakaoChat, KakaoChatMember, KakaoUtterance  # noqa
+    from .models import (
+        User, FinanceDiary, MonthlySummary, YearlySummary, DailySummary, AIUsageLog,
+        KakaoChat, KakaoChatMember, KakaoUtterance
+    )  # noqa
     Base.metadata.create_all(bind=engine)

@@ -74,25 +74,9 @@ async def children_login(request: Request):
 async def profile(
     request: Request,
     child_id: Optional[int] = None,
+    report_type: Optional[str] = None,  # daily, monthly, yearly
     current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    # """부모 프로필 대시보드 및 리포트 섹션"""
-    # if not current_user:
-    #     return RedirectResponse(url="/", status_code=302)
-    # 
-    # # 자녀 계정인 경우
-    # if current_user.parents_id is not None:
-    #     # 자신의 리포트를 보는 것이 아니라면 자녀 프로필 페이지로 이동
-    #     if child_id and current_user.id == child_id:
-    #         return templates.TemplateResponse("profile.html", {"request": request})
-    #     elif not child_id:
-    #         return RedirectResponse(url="/child_profile/", status_code=302)
-    #     else:
-    #         # 타인의 리포트 접근 시 차단 (보안)
-    #         return RedirectResponse(url="/child_profile/", status_code=302)
-    #
-    # return templates.TemplateResponse("profile.html", {"request": request})
-
     if not current_user:
         return RedirectResponse(url="/", status_code=302)
         
@@ -100,7 +84,69 @@ async def profile(
     if not child_id:
         return RedirectResponse(url="/", status_code=302)
         
-    return templates.TemplateResponse("profile.html", {"request": request})
+    return templates.TemplateResponse("profile.html", {
+        "request": request,
+        "report_type": report_type or "monthly",
+        "child_id": child_id,
+        "view_mode": "dashboard" # 기본은 대시보드 모드
+    })
+
+
+# 일일결산 페이지
+@router.get("/profile/daily/{child_id}/", response_class=HTMLResponse)
+async def profile_daily(
+    request: Request,
+    child_id: int,
+    chat_id: Optional[int] = None,
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    if not current_user:
+        return RedirectResponse(url="/", status_code=302)
+        
+    return templates.TemplateResponse("profile_daily.html", {
+        "request": request,
+        "child_id": child_id,
+        "chat_id": chat_id,
+        "view_mode": "report"
+    })
+
+
+# 월말결산 페이지
+@router.get("/profile/monthly/{child_id}/", response_class=HTMLResponse)
+async def profile_monthly(
+    request: Request,
+    child_id: int,
+    chat_id: Optional[int] = None,
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    if not current_user:
+        return RedirectResponse(url="/", status_code=302)
+        
+    return templates.TemplateResponse("profile_monthly.html", {
+        "request": request,
+        "child_id": child_id,
+        "chat_id": chat_id,
+        "view_mode": "report"
+    })
+
+
+# 연말결산 페이지
+@router.get("/profile/yearly/{child_id}/", response_class=HTMLResponse)
+async def profile_yearly(
+    request: Request,
+    child_id: int,
+    chat_id: Optional[int] = None,
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    if not current_user:
+        return RedirectResponse(url="/", status_code=302)
+        
+    return templates.TemplateResponse("profile_yearly.html", {
+        "request": request,
+        "child_id": child_id,
+        "chat_id": chat_id,
+        "view_mode": "report"
+    })
 
 
 # 부모 프로필 상세 (레거시 리다이렉트)
@@ -134,13 +180,91 @@ async def signup(
 @router.get("/child_profile/", response_class=HTMLResponse)
 async def child_profile_index(
     request: Request,
+    child_id: Optional[int] = None,
+    chat_id: Optional[int] = None,  # 채팅방 ID (카카오에서 넘어올 때 사용)
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """현재 세션 사용자의 프로필 페이지"""
+    """현재 세션 사용자의 프로필 페이지 (또는 부모가 자녀 페이지 조회)"""
+    target_child = current_user
+    is_parent_viewing = False
+
+    # URL에 chat_id가 있는 경우 쿠키에 저장하고 리다이렉트 (주소창 숨김 처리)
+    if chat_id is not None:
+        # 쿼리 파라미터 재구성 (chat_id 제외)
+        redirect_url = "/child_profile/"
+        if child_id:
+            redirect_url += f"?child_id={child_id}"
+            
+        response = RedirectResponse(url=redirect_url, status_code=303)
+        # chat_id 쿠키 설정 (유효기간: 브라우저 종료 시까지)
+        response.set_cookie(key="chat_id", value=str(chat_id), httponly=True)
+        return response
+
+    # 쿼리 파라미터가 없는 경우 쿠키에서 chat_id 확인
+    if chat_id is None:
+        cookie_chat_id = request.cookies.get("chat_id")
+        if cookie_chat_id:
+            try:
+                chat_id = int(cookie_chat_id)
+            except (ValueError, TypeError):
+                pass
+    
+    # 보안 점검: chat_id가 유효하고 현재 사용자가 해당 채팅방의 멤버인지 확인
+    if chat_id:
+        # KakaoChatMember 모델 import 필요 (함수 내부 import로 해결하거나 상단 추가)
+        from ..models.kakao import KakaoChatMember
+        
+        # 현재 사용자의 Kakao Key가 존재하는지 확인 (username 필드가 kakao key라고 가정)
+        # 또는 User 모델에 kakao_user_key 필드가 있는지 확인 필요.
+        # 기존 로직에서 username을 사용하는 경우가 많으므로 username 시도.
+        member_check = db.query(KakaoChatMember).filter(
+            KakaoChatMember.chat_id == chat_id,
+            KakaoChatMember.user_key == current_user.username 
+        ).first()
+
+        # 만약 멤버가 아니면 chat_id 무시 (보안상 다른 사람 거 조회 불가)
+        if not member_check:
+             # 부모의 경우, 자녀가 멤버인지 확인해야 함
+             if current_user.is_parent:
+                 # 자녀들 중 하나라도 멤버인지 확인
+                 children = db.query(User).filter(User.parents_id == current_user.id).all()
+                 is_child_chat = False
+                 for child in children:
+                     child_member = db.query(KakaoChatMember).filter(
+                         KakaoChatMember.chat_id == chat_id,
+                         KakaoChatMember.user_key == child.username
+                     ).first()
+                     if child_member:
+                         is_child_chat = True
+                         break
+                 
+                 if not is_child_chat:
+                     chat_id = None # 권한 없음
+             else:
+                 chat_id = None # 권한 없음
+
+    if child_id and child_id != current_user.id:
+        # 자녀 조회 시도
+        child_obj = db.query(User).filter(User.id == child_id).first()
+        if not child_obj:
+             raise HTTPException(status_code=404, detail="User not found")
+        
+        # 권한 확인 (부모인지)
+        if child_obj.parents_id == current_user.id:
+            target_child = child_obj
+            is_parent_viewing = True
+        else:
+            return RedirectResponse(url="/access-error/", status_code=302)
+
     return templates.TemplateResponse(
         "children_profile.html",
-        {"request": request, "child": current_user}
+        {
+            "request": request, 
+            "child": target_child, 
+            "chat_id": chat_id,
+            "is_parent_viewing": is_parent_viewing
+        }
     )
 
 
@@ -152,6 +276,7 @@ async def child_profile_index(
 async def chatbot(
     request: Request,
     child_pk: int,
+    chat_id: Optional[int] = None,  # 채팅방 ID 추가
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional)
 ):
@@ -178,7 +303,8 @@ async def chatbot(
             "request": request,
             "user": user,
             "user_image": user_image,
-            "child_pk": child_pk
+            "child_pk": child_pk,
+            "chat_id": chat_id  # 템플릿에 전달
         }
     )
 

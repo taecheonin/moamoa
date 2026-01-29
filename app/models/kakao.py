@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..database import Base
@@ -39,6 +39,7 @@ class KakaoChatMember(Base):
 class KakaoUtterance(Base):
     """
     카카오톡 발화문 모니터링 저장 모델
+    OpenAI 호출 횟수 제한 관리용
     """
     __tablename__ = "kakao_utterances"
     
@@ -46,9 +47,11 @@ class KakaoUtterance(Base):
     user_key = Column(String(255), nullable=True, index=True)
     chat_id = Column(String(255), nullable=True, index=True)
     utterance = Column(Text, nullable=True)
+    bot_response = Column(Text, nullable=True)  # OpenAI 응답 저장
     block_id = Column(String(255), nullable=True, index=True)
     params = Column(Text, nullable=True)  # JSON string
+    date = Column(Date, nullable=True, index=True)  # 날짜 기준 조회용
     created_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
-        return f"<KakaoUtterance(id={self.id}, user_key='{self.user_key}', utterance='{self.utterance[:20]}...')>"
+        return f"<KakaoUtterance(id={self.id}, user_key='{self.user_key}', utterance='{self.utterance[:20] if self.utterance else ''}...')>"

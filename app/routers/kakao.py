@@ -2,7 +2,8 @@ from fastapi import APIRouter, Request, Depends, BackgroundTasks
 import json
 import os
 import re
-from datetime import datetime
+import calendar
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from ..config import settings
 from ..database import get_db
@@ -10,7 +11,7 @@ from ..models.kakao import KakaoChat, KakaoChatMember, KakaoUtterance
 import requests
 import asyncio
 import time
-from ..utils.chatbot import chat_with_bot, update_remaining_balance
+from ..utils.chatbot import chat_with_bot
 from ..models.user import User
 from ..models.diary import FinanceDiary, KakaoSync
 import uuid
@@ -18,7 +19,7 @@ from ..utils.validators import hash_password_django
 from decimal import Decimal
 from ..dependencies import create_magic_token
 
-async def process_callback(callback_url: str, utterance: str, user_id: str, params: dict = None):
+async def process_callback(callback_url: str, utterance: str, user_id: str, params: dict = None, db: Session = None, chat_id: str = None):
     """
     카카오 콜백 URL로 지연된 응답을 보냅니다.
     """
@@ -26,11 +27,55 @@ async def process_callback(callback_url: str, utterance: str, user_id: str, para
     # 임시로 5초 대기
     await asyncio.sleep(5)
 
+    # OpenAI 호출 횟수 제한 검사 (chat_id 기준, 하루 10회)
+    if db and chat_id:
+        today = datetime.now().date()
+        # KakaoUtterance 테이블에서 오늘 해당 chat_id의 기록 중 AI 응답이 있는 것 계산
+        ai_call_count = db.query(KakaoUtterance).filter(
+            KakaoUtterance.chat_id == str(chat_id),
+            KakaoUtterance.date == today,
+            KakaoUtterance.bot_response.isnot(None)
+        ).count()
+        
+        if ai_call_count >= 10:
+            # 10회 초과 시 에러 응답
+            payload = {
+                "version": "2.0",
+                "template": {
+                    "outputs": [{
+                        "simpleText": {
+                            "text": "⚠️ AI 분석은 하루에 최대 10번까지 가능합니다.\n내일 다시 시도해 주세요!"
+                        }
+                    }]
+                }
+            }
+            try:
+                requests.post(callback_url, json=payload)
+            except:
+                pass
+            return
+
     # 챗봇 응답 받기
     try:
         response_text = chat_with_bot(utterance, user_id)
     except Exception as e:
         response_text = "죄송해요, 지금은 대답하기가 어려워요."
+    
+    # OpenAI 호출 기록 저장 (chat_id 기준, 날짜별)
+    if db and chat_id:
+        try:
+            today = datetime.now().date()
+            ai_call_record = KakaoUtterance(
+                user_key=user_id,
+                chat_id=str(chat_id),
+                utterance=utterance,
+                bot_response=response_text,
+                date=today
+            )
+            db.add(ai_call_record)
+            db.commit()
+        except Exception as record_e:
+            db.rollback()
 
     # 챗봇 응답에서 항목 추출 (Regex)
     # 1. 날짜, 2. 금액, 3. 사용 내역, 4. 분류, 5. 거래 유형
@@ -185,23 +230,6 @@ async def kakao_message_log(
         allowance_block_id = "6942260860f91e2c82b625ac"
         #블록 용돈기입장YN
         allowance_yn_block_id = "696f71150c338f3b8e58fe2f"
-        #블록 월말결산 (ID 확인 필요 - 현재 YN블록과 동일하게 설정되어 있음)
-        month_end_block_id = "69722914b3799b0f2936ac84"
-
-        # 발화문 모니터링을 위한 DB 저장 ("용돈기입장" 포함된 경우만)
-        if utterance and "용돈기입장" in utterance:
-            try:
-                new_utterance = KakaoUtterance(
-                    user_key=user_id,
-                    chat_id=chat_id,
-                    utterance=utterance,
-                    block_id=block_id,
-                    params=json.dumps(extracted_params, ensure_ascii=False)
-                )
-                db.add(new_utterance)
-                db.commit()
-            except Exception as utt_e:
-                db.rollback()
 
         # Kakao API를 통한 채팅방 멤버 정보 조회
         if bot_id and chat_id:
@@ -377,16 +405,6 @@ async def kakao_message_log(
                     KakaoChatMember.user_key == user_id
                 ).first()
                 
-                # current_user가 None이어도(채팅방 멤버 미등록) 사용 가능하도록 처리할 수도 있으나,
-                # 여기서는 '부모(0)인 경우 사용 방지' 로직 자체를 제거하여 부모도 통과되게 함.
-                # if not current_user or current_user.user_type == 0:
-                #     return {
-                #         "version": "2.0",
-                #         "template": {
-                #             "outputs": [{"simpleText": {"text": "자녀만 사용할 수 있는 메뉴입니다."}}]
-                #         }
-                #     }
-            
             if callback_url:
                 # 백그라운드 작업 추가
                 utterance = utterance.replace("용돈기입장", "").strip()
@@ -395,7 +413,7 @@ async def kakao_message_log(
                 # chat_id 와 user_key 매칭이 kakao_chat_members 테이블 id 값으로 user_id 반영
                 member_id = current_user.id if (current_user and hasattr(current_user, 'id')) else user_id
 
-                background_tasks.add_task(process_callback, callback_url, utterance, member_id, extracted_params)
+                background_tasks.add_task(process_callback, callback_url, utterance, member_id, extracted_params, db, chat_record.id)
             
                 return {
                     "version": "2.0",
@@ -499,9 +517,10 @@ async def kakao_message_log(
                             category=diary_data.get("category", "기타/지출"),
                             transaction_type=diary_data.get("transaction_type", "지출"),
                             amount=amount_val,
-                            remaining=child_user.total,
                             today=today_date,
-                            kakao_sync_id=sync_id
+                            kakao_sync_id=sync_id,
+                            kakao_chat_id=chat_member.chat_id,  # 채팅방 그룹 기준 조회용
+                            writer_type=chat_member.user_type  # 0: 부모, 1: 자녀
                         )
                         db.add(new_entry)
                         
@@ -511,28 +530,136 @@ async def kakao_message_log(
                             db.add(new_sync)
                             
                         db.commit()
-                        update_remaining_balance(db, child_user)
 
                         magic_token = create_magic_token(child_user.id)
+
+                        # 결산 기간 정보 생성
+                        now = datetime.now()
+                        today = now.date()
+                        
+                        today_str = now.strftime("%Y년 %m월 %d일")
+                        month_str = now.strftime("%Y년 %m월")
+                        year_str = f"{now.year}년"
+                        
+                        # 월의 첫날과 마지막날 계산
+                        month_start = today.replace(day=1)
+                        if today.month == 12:
+                            month_end = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+                        else:
+                            month_end = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
+                        
+                        # 연도의 첫날과 마지막날
+                        year_start = datetime(now.year, 1, 1).date()
+                        year_end = datetime(now.year, 12, 31).date()
+
+                        # 각 기간별 데이터 존재 여부 확인 (채팅방 ID 그룹 기준)
+                        has_daily = db.query(FinanceDiary).filter(
+                            FinanceDiary.kakao_chat_id == chat_member.chat_id,
+                            FinanceDiary.today == today
+                        ).first() is not None
+
+                        has_monthly = db.query(FinanceDiary).filter(
+                            FinanceDiary.kakao_chat_id == chat_member.chat_id,
+                            FinanceDiary.today >= month_start,
+                            FinanceDiary.today <= month_end
+                        ).first() is not None
+
+                        has_yearly = db.query(FinanceDiary).filter(
+                            FinanceDiary.kakao_chat_id == chat_member.chat_id,
+                            FinanceDiary.today >= year_start,
+                            FinanceDiary.today <= year_end
+                        ).first() is not None
+
+                        # 기본 카드 (항상 표시)
+                        output_cards = [
+                            {
+                                "textCard": {
+                                    "title": "기록 완료!",
+                                    "description": "성공적으로 기록되었습니다.",
+                                    "buttons": [
+                                        {
+                                            "action": "webLink",
+                                            "label": "보러가기",
+                                            "webLinkUrl": f"https://moamoa.kids/verify-token/?token={magic_token}&next=/child_profile/?chat_id={chat_member.chat_id}"
+                                        },
+                                        {
+                                            "action": "block",
+                                            "label": "삭제하기",
+                                            "blockId": allowance_yn_block_id,
+                                            "extra": {
+                                                "cmd": "n",
+                                                "user_id": member_id,
+                                                "sync_id": sync_id
+                                            }
+                                        }
+                                    ],
+                                    "buttonLayout": "horizontal"
+                                }
+                            }
+                        ]
+
+                        # 진행 시점 확인
+                        # 월말결산: 말일 또는 다음 달 1~5일
+                        last_day_of_month = calendar.monthrange(today.year, today.month)[1]
+                        is_monthly_period = (today.day == last_day_of_month or 
+                                           (today.day <= 5 and today.month != month_start.month))
+                        
+                        # 연말결산: 12월 31일 또는 1월~2월
+                        is_yearly_period = ((today.month == 12 and today.day == 31) or 
+                                           today.month in [1, 2])
+                        
+                        print(f"DEBUG - Today: {today}, is_monthly_period: {is_monthly_period}, is_yearly_period: {is_yearly_period}")
+                        print(f"DEBUG - Last day of month: {last_day_of_month}, current day: {today.day}")
+
+                        # 일일/월말 결산 카드 (데이터가 있는 버튼만 추가)
+                        daily_monthly_buttons = []
+                        if has_daily:
+                            daily_monthly_buttons.append({
+                                "action": "webLink",
+                                "label": f"📅 일일결산 {today_str}",
+                                "webLinkUrl": f"https://moamoa.kids/verify-token/?token={magic_token}&next=/profile/daily/{child_user.id}/?chat_id={chat_member.chat_id}"
+                            })
+                        if has_monthly and is_monthly_period:
+                            daily_monthly_buttons.append({
+                                "action": "webLink",
+                                "label": f"📊 월말결산 {month_str}",
+                                "webLinkUrl": f"https://moamoa.kids/verify-token/?token={magic_token}&next=/profile/monthly/{child_user.id}/?chat_id={chat_member.chat_id}"
+                            })
+                        
+                        if daily_monthly_buttons and len(output_cards) < 3:
+                            desc_parts = []
+                            if has_daily:
+                                desc_parts.append(f"📅 일일: {today_str} (오늘)")
+                            if has_monthly and is_monthly_period:
+                                desc_parts.append(f"📊 월말: {month_str} 1일~말일")
+                            output_cards.append({
+                                "textCard": {
+                                    "title": "📊 결산 리포트",
+                                    "description": "\n".join(desc_parts),
+                                    "buttons": daily_monthly_buttons
+                                }
+                            })
+
+                        # 연말결산 카드 (진행 시점 + 데이터가 있을 때만 표시)
+                        if has_yearly and is_yearly_period and len(output_cards) < 3:
+                            output_cards.append({
+                                "textCard": {
+                                    "title": f"🎊 {year_str} 연말결산",
+                                    "description": f"📆 기간: {year_str} 1월 1일 ~ 12월 31일\n올 한 해 소비 패턴을 확인해 보세요!",
+                                    "buttons": [
+                                        {
+                                            "action": "webLink",
+                                            "label": f"🎊 연말결산 {year_str}",
+                                            "webLinkUrl": f"https://moamoa.kids/verify-token/?token={magic_token}&next=/profile/yearly/{child_user.id}/?chat_id={chat_member.chat_id}"
+                                        }
+                                    ]
+                                }
+                            })
 
                         return {
                             "version": "2.0",
                             "template": {
-                                "outputs": [
-                                    {
-                                        "textCard": {
-                                            "title": "기록 완료!",
-                                            "description": "성공적으로 기록되었습니다.",
-                                            "buttons": [
-                                                {
-                                                    "action": "webLink",
-                                                    "label": "용돈기입장 보러가기",
-                                                    "webLinkUrl": f"https://moamoa.kids/verify-token/?token={magic_token}"
-                                                }
-                                            ]
-                                        }
-                                    }
-                                ]
+                                "outputs": output_cards
                             }
                         }
 
@@ -549,9 +676,7 @@ async def kakao_message_log(
                     # 기존 기록 삭제
                     entry = db.query(FinanceDiary).filter(FinanceDiary.kakao_sync_id == sync_id).first()
                     if entry:
-                        child_user = db.query(User).filter(User.username == entry.child.username).first()
                         db.delete(entry)
-                        pass
                         
                         # 상태 업데이트
                         if sync_record:
@@ -560,10 +685,6 @@ async def kakao_message_log(
                             db.add(KakaoSync(sync_id=sync_id, status="CANCELLED"))
                         
                         db.commit()
-                        
-                        # 잔액 재계산
-                        if child_user:
-                            update_remaining_balance(db, child_user)
                             
                         return {
                             "version": "2.0",
@@ -591,150 +712,33 @@ async def kakao_message_log(
                     }
                 }
 
-        #블록 월말결산
-        elif block_id == month_end_block_id:
-            # 부모만 월말결산 볼수 있음
-            chat_record = db.query(KakaoChat).filter(KakaoChat.chat_id == chat_id).first()
-            if chat_record:
-                current_member = db.query(KakaoChatMember).filter(
-                    KakaoChatMember.chat_id == chat_record.id,
-                    KakaoChatMember.user_key == user_id
-                ).first()
 
-                # 자녀인 경우 접근 제한 해제
-                # if current_member and current_member.user_type == 1: ...
-
-
-                # 멘션된 자녀 추출 (있는 경우 해당 자녀만 표시)
-                action_params = action.get("params", {})
-                mentioned_keys = []
-                for k in ["sys_user_mention", "sys_user_mention1", "sys_user_mention2", "sys_user_mention3", "sys_user_mention4"]:
-                    m_val = action_params.get(k)
-                    if m_val:
-                        try:
-                            m_data = json.loads(m_val)
-                            kb_key = m_data.get("botUserKey")
-                            if kb_key: mentioned_keys.append(kb_key)
-                        except: pass
-                
-                mentioned_keys = list(set(mentioned_keys))
-
-                # 채팅방에 등록된 자녀 목록 조회
-                query = db.query(KakaoChatMember).filter(
-                    KakaoChatMember.chat_id == chat_record.id,
-                    KakaoChatMember.user_type == 1
-                )
-                
-                # 멘션이 있으면 멘션된 자녀들만 필터링
-                if mentioned_keys:
-                    query = query.filter(KakaoChatMember.user_key.in_(mentioned_keys))
-                
-                children_members = query.all()
-
-                if not children_members:
-                    return {
-                        "version": "2.0",
-                        "template": {
-                            "outputs": [{"simpleText": {"text": "등록된 자녀가 없습니다. 먼저 자녀를 선택해 주세요.\n\n(예: @뫄뫄AI 자녀선택 @자녀)"}}]
-                        }
-                    }
-
-                # 부모 User 객체 가져오기 (매직 토큰 생성용)
-                parent_user = db.query(User).filter(User.username == user_id).first()
-                if not parent_user:
-                    # 유저가 없으면 임시 생성 (추후 정보 업데이트 가능)
-                    parent_user = User(
-                        username=user_id,
-                        password=hash_password_django("kakao_default_pwd"),
-                        first_name=f"카카오부모_{current_member.id if current_member else int(time.time())}",
-                        is_active=True,
-                        date_joined=datetime.utcnow().isoformat()
-                    )
-                    db.add(parent_user)
-                    db.commit()
-                    db.refresh(parent_user)
-
-                now = datetime.now()
-                year_month_str = now.strftime("%Y년 %m월")
-                magic_token = create_magic_token(parent_user.id)
-                output_cards = []
-                mentions_dict = {}
-                
-                # 유효한(기록이 있는) 자녀 데이터 필터링
-                valid_children_data = []
-                for cm in children_members:
-                    c_user = db.query(User).filter(User.username == cm.user_key).first()
-                    if c_user:
-                        # 한 건이라도 있는지 확인
-                        if db.query(FinanceDiary).filter(FinanceDiary.child_id == c_user.id).first():
-                            valid_children_data.append((cm, c_user))
-                
-                if not valid_children_data:
-                    return {
-                        "version": "2.0",
-                        "template": {
-                            "outputs": [{"simpleText": {"text": "/용돈기입장 자산내용 입력해주세요"}}]
-                        }
-                    }
-                
-                for i, (cm, child_user) in enumerate(valid_children_data[:3]):
-                    mention_id = f"child_{i+1}"
-                    mentions_dict[mention_id] = {"type": "botUserKey", "id": cm.user_key}
-                    
-                    # 부모-자녀 관계 연결 (누락 방지) - 부모인 경우에만 실행
-                    if current_member and current_member.user_type == 0:
-                        if child_user.parents_id != parent_user.id:
-                            child_user.parents_id = parent_user.id
-                            db.commit()
-
-                    child_id = child_user.id
-
-                    # 안내 메시지 (자녀가 1명일 때만 혹은 카드 제한에 맞춰 노출)
-                    if len(valid_children_data) == 1:
-                        output_cards.append({
-                            "simpleText": {
-                                "text": f"{{{{#mentions.{mention_id}}}}} 자녀의 {year_month_str} 용돈 관리 리포트가 준비되었습니다! 💌"
-                            }
-                        })
-                    
-                    # 메인 리포트 카드
-                    output_cards.append({
-                        "textCard": {
-                            "title": f"{year_month_str} 월말결산 리포트",
-                            "description": "자녀의 이번 달 소비 패턴과 AI 분석 결과를 리포트로 확인해 보세요! ",
-                            "buttons": [
-                                {
-                                    "action": "webLink",
-                                    "label": "결산 리포트 보기",
-                                    "webLinkUrl": f"https://moamoa.kids/verify-token/?token={magic_token}&next=/profile/?child_id={child_id}"
-                                }
-                            ]
-                        }
-                    })
-                    
-                    # 카카오 3개 제한 방어
-                    if len(output_cards) >= 3:
-                        break
-
-                return {
-                    "version": "2.0",
-                    "template": {
-                        "outputs": output_cards
-                    },
-                    "extra": {
-                        "mentions": mentions_dict
-                    }
-                }
-            
         # 기본 응답 및 발화문 모니터링 위한 등록
-        return {
-            "version": "2.0",
-            "template": {
-                "outputs": [{
-                    "simpleText": {"text": "[부모] 자녀들을 선택 할때?\n/자녀선택 @홍길동\n/자녀선택 @홍길동 @홍길동\n자녀는 5명까지 선택이 가능합니다.\n\n[부모] 월말 결산 및 리포트를 보고 싶다면?\n/월말결산 @홍길동\n\n[자녀] 용돈 기입장을 작성 하는 방법?\n(날짜, 내용, 금액이 포함되게 작성해주세요)\n/용돈기입장 오늘 엄마가 용돈을 만원 줬어\n/용돈기입장 오늘 형광펜 사느라 1000원 씀\n\n"}
-                    }]
+        else:
+
+             # 발화문 모니터링을 위한 DB 저장 (모든 발화문 저장)
+            if utterance:
+                try:
+                    new_utterance = KakaoUtterance(
+                        user_key=user_id,
+                        chat_id=chat_id,
+                        utterance=utterance,
+                        block_id=block_id,
+                        params=json.dumps(extracted_params, ensure_ascii=False)
+                    )
+                    db.add(new_utterance)
+                    db.commit()
+                except Exception as utt_e:
+                    db.rollback()
+
+            return {
+                "version": "2.0",
+                "template": {
+                    "outputs": [{
+                        "simpleText": {"text": "[부모] 자녀들을 선택 할때?\n/자녀선택 @홍길동\n/자녀선택 @홍길동 @홍길동\n자녀는 5명까지 선택이 가능합니다.\n\n[부모/자녀] 결산 리포트를 보고 싶다면?\n/일일결산 @홍길동\n/월말결산 @홍길동\n/연말결산 @홍길동\n\n[자녀] 용돈 기입장을 작성 하는 방법?\n(날짜, 내용, 금액이 포함되게 작성해주세요)\n/용돈기입장 오늘 엄마가 용돈을 만원 줬어\n/용돈기입장 오늘 형광펜 사느라 1000원 씀\n\n"}
+                        }]
+                }
             }
-        }
 
     except Exception as e:
         # 에러 발생 시 로그 (필요시 파일에 에러도 기록 가능)
